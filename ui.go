@@ -12,11 +12,9 @@ import (
 type screen int
 
 const (
-	screenWelcome screen = iota
-	screenCategories
+	screenCategories screen = iota
 	screenStepSelect
 	screenCategoryRun
-	screenSummary
 )
 
 // ── Messages ───────────────────────────────────────────────────────────────
@@ -96,7 +94,7 @@ func newModel(state *AppState) model {
 	}
 
 	return model{
-		screen:       screenWelcome,
+		screen:       screenCategories,
 		state:        state,
 		categories:   cats,
 		stepSelected: stepSel,
@@ -156,14 +154,6 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.screen {
-	case screenWelcome:
-		if key == "enter" {
-			m.screen = screenCategories
-		}
-		if key == "q" {
-			return m, tea.Quit
-		}
-
 	case screenCategories:
 		if m.confirmReset {
 			switch key {
@@ -289,8 +279,6 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-	case screenSummary:
-		return m, tea.Quit
 	}
 
 	return m, nil
@@ -424,50 +412,23 @@ func (m model) isCategoryDone(cat string) bool {
 
 func (m model) View() string {
 	switch m.screen {
-	case screenWelcome:
-		return m.viewWelcome()
 	case screenCategories:
 		return m.viewCategories()
 	case screenStepSelect:
 		return m.viewStepSelect()
 	case screenCategoryRun:
 		return m.viewCategoryRun()
-	case screenSummary:
-		return m.viewSummary()
 	}
 	return ""
 }
 
-func (m model) viewWelcome() string {
-	banner := ` __    __     ______     ______        ______     ______     ______   __  __     ______
-/\ "-./  \   /\  __ \   /\  ___\      /\  ___\   /\  ___\   /\__  _\ /\ \/\ \   /\  == \
-\ \ \-./\ \  \ \  __ \  \ \ \____     \ \___  \  \ \  __\   \/_/\ \/ \ \ \_\ \  \ \  _-/
- \ \_\ \ \_\  \ \_\ \_\  \ \_____\     \/\_____\  \ \_____\    \ \_\  \ \_____\  \ \_\
-  \/_/  \/_/   \/_/\/_/   \/_____/      \/_____/   \/_____/     \/_/   \/_____/   \/_/`
-
-	var b strings.Builder
-	b.WriteString("\n")
-	b.WriteString(styleBanner.Render(banner))
-	b.WriteString("\n\n")
-	b.WriteString(styleTitle.Render("  Interactive Mac Setup"))
-	if m.dryRun {
-		b.WriteString("  " + styleWarning.Render("[DRY RUN]"))
-	}
-	b.WriteString("\n\n")
-	b.WriteString(styleDescription.Render("  • Automated new mac setup") + "\n")
-	b.WriteString(styleDescription.Render("  • Choose what you want, then run.") + "\n")
-	b.WriteString(styleDescription.Render("  • Exit and resume anytime, progress is saved") + "\n")
-	b.WriteString("\n")
-	b.WriteString(help("  Press [Enter] to start  •  [q] to quit"))
-	b.WriteString("\n")
-	return b.String()
-}
-
-
 func (m model) viewCategories() string {
 	var b strings.Builder
 	b.WriteString("\n")
-	b.WriteString(styleTitle.Render("  Categories"))
+	b.WriteString(styleTitle.Render("  Mac Setup"))
+	if m.dryRun {
+		b.WriteString("  " + styleWarning.Render("[DRY RUN]"))
+	}
 	b.WriteString("\n\n")
 
 	for i, cat := range m.categories {
@@ -521,6 +482,9 @@ func (m model) viewStepSelect() string {
 	var b strings.Builder
 	b.WriteString("\n")
 	b.WriteString(styleTitle.Render(fmt.Sprintf("  %s — select steps", m.stepSelectCat)))
+	if m.dryRun {
+		b.WriteString("  " + styleWarning.Render("[DRY RUN]"))
+	}
 	b.WriteString("\n\n")
 
 	// Row 0: Select All
@@ -657,26 +621,6 @@ func (m model) viewCategoryRun() string {
 	return b.String()
 }
 
-func (m model) viewSummary() string {
-	var b strings.Builder
-	b.WriteString("\n")
-	b.WriteString(styleTitle.Render("  Setup Complete!"))
-	b.WriteString("\n\n")
-
-	completed := 0
-	for _, s := range m.state.Steps {
-		if s == StatusCompleted {
-			completed++
-		}
-	}
-
-	b.WriteString(styleDescription.Render(fmt.Sprintf("  Total steps completed: %d", completed)) + "\n")
-	b.WriteString(styleDescription.Render("  State saved to ~/.mac-setup/state.json") + "\n")
-	b.WriteString("\n")
-	b.WriteString(styleHelp.Render("  Press any key to exit") + "\n")
-	b.WriteString("\n")
-	return b.String()
-}
 
 // help renders a help line with dim text and yellow [keys].
 func help(s string) string {

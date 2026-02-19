@@ -24,10 +24,6 @@ func TestGRunsOnlyCurrentCategory(t *testing.T) {
 
 	var tm tea.Model = m
 
-	// Welcome → categories
-	tm = sendSpecialKey(tm, tea.KeyEnter)
-	m = tm.(model)
-
 	if m.screen != screenCategories {
 		t.Fatalf("expected categories screen, got %d", m.screen)
 	}
@@ -80,9 +76,9 @@ func TestRestartPreservesSelection(t *testing.T) {
 	m := newModel(state)
 	m.dryRun = true
 
-	// Should go to welcome, not a resume screen
-	if m.screen != screenWelcome {
-		t.Fatalf("expected welcome screen, got %d", m.screen)
+	// Should go straight to categories
+	if m.screen != screenCategories {
+		t.Fatalf("expected categories screen, got %d", m.screen)
 	}
 
 	// Step selection should be restored from state
@@ -116,9 +112,6 @@ func TestCategoryRunSequential(t *testing.T) {
 	m.dryRun = true
 
 	var tm tea.Model = m
-
-	// Welcome → categories
-	tm = sendSpecialKey(tm, tea.KeyEnter)
 
 	// G to run first category
 	tm = sendKey(tm, "G")
@@ -209,9 +202,6 @@ func TestCategoryRunSkipsAlreadyDone(t *testing.T) {
 
 	var tm tea.Model = m
 
-	// Welcome → categories
-	tm = sendSpecialKey(tm, tea.KeyEnter)
-
 	// Press G
 	tm = sendKey(tm, "G")
 	m = tm.(model)
@@ -241,7 +231,6 @@ func TestGOnFullyDoneCategoryIsNoop(t *testing.T) {
 	}
 
 	var tm tea.Model = m
-	tm = sendSpecialKey(tm, tea.KeyEnter)
 
 	tm = sendKey(tm, "G")
 	m = tm.(model)
@@ -260,8 +249,7 @@ func TestStepSelectToggle(t *testing.T) {
 
 	var tm tea.Model = m
 
-	// Welcome → categories → enter first category
-	tm = sendSpecialKey(tm, tea.KeyEnter)
+	// Enter first category
 	tm = sendSpecialKey(tm, tea.KeyEnter)
 	m = tm.(model)
 

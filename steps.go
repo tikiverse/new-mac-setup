@@ -9,7 +9,6 @@ type Step struct {
 	Commands           []string
 	ManualInstructions string
 	RequiresAdmin      bool
-	DependsOn          []string
 }
 
 // AllSteps returns the full ordered list of setup steps derived from the notion export.
@@ -92,7 +91,7 @@ func AllSteps() []Step {
 				`echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile`,
 				`eval "$(/opt/homebrew/bin/brew shellenv)"`,
 			},
-			DependsOn: []string{"homebrew-install"},
+
 		},
 		{
 			ID:          "homebrew-config",
@@ -104,7 +103,7 @@ func AllSteps() []Step {
 				`brew upgrade`,
 				`brew analytics off`,
 			},
-			DependsOn: []string{"homebrew-path"},
+
 		},
 
 		// ── Browser ────────────────────────────────────────────────────
@@ -114,7 +113,6 @@ func AllSteps() []Step {
 			Name:        "Install Google Chrome",
 			Description: "Install Chrome via Homebrew cask.",
 			Commands:    []string{`brew install --cask google-chrome`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "1password-install",
@@ -122,7 +120,6 @@ func AllSteps() []Step {
 			Name:        "Install 1Password",
 			Description: "Install 1Password via Homebrew cask.",
 			Commands:    []string{`brew install --cask 1password`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:       "1password-setup",
@@ -133,7 +130,6 @@ func AllSteps() []Step {
 				"2. Install the 1Password Chrome extension:\n" +
 				"   https://chrome.google.com/webstore/detail/1password/aeblfdkhhhdcdjpifhhbdiojplfjncoa\n" +
 				"3. Enable in incognito mode: chrome://extensions/",
-			DependsOn: []string{"1password-install", "chrome-install"},
 		},
 
 		// ── Workflow Apps ──────────────────────────────────────────────
@@ -143,7 +139,6 @@ func AllSteps() []Step {
 			Name:        "Install Alfred",
 			Description: "Spotlight replacement and productivity launcher.",
 			Commands:    []string{`brew install --cask alfred`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "notion-install",
@@ -151,7 +146,6 @@ func AllSteps() []Step {
 			Name:        "Install Notion",
 			Description: "Note-taking and workspace app.",
 			Commands:    []string{`brew install --cask notion`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "vscode-install",
@@ -159,7 +153,6 @@ func AllSteps() []Step {
 			Name:        "Install Visual Studio Code",
 			Description: "Code editor.",
 			Commands:    []string{`brew install --cask visual-studio-code`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "iterm2-install",
@@ -167,7 +160,6 @@ func AllSteps() []Step {
 			Name:        "Install iTerm2",
 			Description: "Terminal emulator replacement.",
 			Commands:    []string{`brew install --cask iterm2`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:       "iterm2-setup",
@@ -179,7 +171,6 @@ func AllSteps() []Step {
 				"  • Profiles → Colors: Pastel (Dark)\n" +
 				"  • Set background to #1b1f22\n" +
 				"  • Set blue to #0dc8ff",
-			DependsOn: []string{"iterm2-install"},
 		},
 		{
 			ID:          "caffeine-install",
@@ -187,7 +178,6 @@ func AllSteps() []Step {
 			Name:        "Install Caffeine",
 			Description: "Prevents Mac from sleeping.",
 			Commands:    []string{`brew install --cask caffeine`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "rectangle-install",
@@ -195,7 +185,6 @@ func AllSteps() []Step {
 			Name:        "Install Rectangle",
 			Description: "Window management with keyboard shortcuts.",
 			Commands:    []string{`brew install --cask rectangle`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:       "rectangle-setup",
@@ -205,7 +194,6 @@ func AllSteps() []Step {
 			ManualInstructions: "Open Rectangle:\n" +
 				"  • Grant Accessibility permission when prompted\n" +
 				"  • Enable 'Launch at Login'",
-			DependsOn: []string{"rectangle-install"},
 		},
 		{
 			ID:          "itsycal-install",
@@ -213,7 +201,6 @@ func AllSteps() []Step {
 			Name:        "Install Itsycal",
 			Description: "Tiny menu-bar calendar.",
 			Commands:    []string{`brew install --cask itsycal`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:       "itsycal-setup",
@@ -223,7 +210,6 @@ func AllSteps() []Step {
 			ManualInstructions: "Open Itsycal:\n" +
 				"  • Enable 'Launch at Login'\n" +
 				"  • Highlight M, T, Th in the weekly view",
-			DependsOn: []string{"itsycal-install"},
 		},
 		{
 			ID:       "things-install",
@@ -298,7 +284,6 @@ func AllSteps() []Step {
 			Name:        "Install Spotify",
 			Description: "Music streaming app.",
 			Commands:    []string{`brew install --cask spotify`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "vlc-install",
@@ -306,7 +291,6 @@ func AllSteps() []Step {
 			Name:        "Install VLC",
 			Description: "Universal media player.",
 			Commands:    []string{`brew install --cask vlc`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "ffmpeg-install",
@@ -314,7 +298,6 @@ func AllSteps() []Step {
 			Name:        "Install ffmpeg",
 			Description: "CLI tool for video/audio conversion.",
 			Commands:    []string{`brew install ffmpeg`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "youtube-dl-install",
@@ -322,7 +305,6 @@ func AllSteps() []Step {
 			Name:        "Install youtube-dl",
 			Description: "Download videos from YouTube and other sites.",
 			Commands:    []string{`brew install youtube-dl`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "flux-install",
@@ -330,7 +312,6 @@ func AllSteps() []Step {
 			Name:        "Install f.lux",
 			Description: "Adjusts screen color temperature at night.",
 			Commands:    []string{`brew install --cask flux`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "zoom-install",
@@ -338,7 +319,6 @@ func AllSteps() []Step {
 			Name:        "Install Zoom",
 			Description: "Video conferencing app.",
 			Commands:    []string{`brew install --cask zoom`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 
 		// ── Development ────────────────────────────────────────────────
@@ -357,7 +337,6 @@ func AllSteps() []Step {
 			Name:        "Install Docker",
 			Description: "Container runtime.",
 			Commands:    []string{`brew install docker`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 		{
 			ID:          "brew-formulae",
@@ -367,7 +346,7 @@ func AllSteps() []Step {
 			Commands: []string{
 				`brew install fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password`,
 			},
-			DependsOn: []string{"homebrew-config"},
+
 		},
 
 		// ── Keyboard ───────────────────────────────────────────────────
@@ -395,7 +374,6 @@ func AllSteps() []Step {
 				"  • Instapaper — https://chrome.google.com/webstore/detail/instapaper/ldjkgaaoikpmhmkelcgkgacicjfbofhh\n" +
 				"  • YouTube Playback Speed Control — https://chrome.google.com/webstore/detail/youtube-playback-speed-co/hdannnflhlmdablckfkjpleikpphncik\n" +
 				"  • Also: Cold Turkey Blocker, Loom, OneTab, Readwise Highlighter, React DevTools",
-			DependsOn: []string{"chrome-install"},
 		},
 		{
 			ID:       "chrome-flags",
@@ -405,7 +383,6 @@ func AllSteps() []Step {
 			ManualInstructions: "1. Open chrome://flags/#hardware-media-key-handling → Disable\n" +
 				"2. To prevent Cmd+Shift+I opening Mail instead of DevTools:\n" +
 				"   https://apple.stackexchange.com/a/108129",
-			DependsOn: []string{"chrome-install"},
 		},
 
 		// ── Additional Tweaks ──────────────────────────────────────────
@@ -425,7 +402,6 @@ func AllSteps() []Step {
 			Name:        "Install SoundSource",
 			Description: "Advanced audio control for Mac.",
 			Commands:    []string{`brew install --cask soundsource`},
-			DependsOn:   []string{"homebrew-config"},
 		},
 	}
 }
@@ -443,13 +419,3 @@ func Categories() []string {
 	return cats
 }
 
-// StepsForCategories returns only steps whose category is in the given set.
-func StepsForCategories(cats map[string]bool) []Step {
-	var out []Step
-	for _, s := range AllSteps() {
-		if cats[s.Category] {
-			out = append(out, s)
-		}
-	}
-	return out
-}

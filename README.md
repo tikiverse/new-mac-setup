@@ -1,8 +1,8 @@
 # mac-setup
 
-Interactive TUI for bootstrapping a fresh Mac. Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea).
+Interactive TUI for bootstrapping a fresh Mac, a-la carte.
 
-Pick categories/steps, run or skip each one, quit anytime — progress is saved to `~/.mac-setup/state.json`.
+Pick categories/steps from a menu card, only picking what you decide — progress is saved to `~/.mac-setup/state.json`.
 
 ## What it sets up
 
@@ -12,18 +12,18 @@ System prefs, Homebrew, browsers, dev tools (Node, Docker, CLI utilities), Finde
 
 ```
 go run .            # interactive setup
-go run . -n         # dry-run (prints commands, doesn't execute)
-go run . --dry-run  # same
+go run . --dry-run  # dry-run (prints commands, doesn't execute)
+go run . -n         # same, shorthand
 ```
 
 ## Controls
 
 | Key | Action |
 |-----|--------|
-| `j/k` | Navigate |
-| `Space` | Toggle selection |
-| `Enter` | Drill into category / run step |
+| `↑/↓` or `j/k` | Navigate |
+| `Enter` or `Space` | Drill into category |
+| `Space` | Toggle step selection |
 | `G` | Start running selected steps |
-| `s` | Skip step |
-| `b` | Back |
+| `Backspace` or `Esc` | Back |
+| `R` | Reset step state |
 | `q` | Quit (progress saved) |

@@ -16,12 +16,10 @@ const (
 	StatusFailed    StepStatus = "failed"
 )
 
-// AppState is persisted to disk for resume support.
+// AppState is persisted to disk between runs.
 type AppState struct {
 	Steps         map[string]StepStatus `json:"steps"`
 	SelectedSteps map[string]bool       `json:"selected_steps,omitempty"`
-	LastStepIndex int                   `json:"last_step_index"`
-	PrevSteps     map[string]StepStatus `json:"prev_steps,omitempty"`
 }
 
 func stateDir() string {
@@ -61,39 +59,8 @@ func (s *AppState) Save() error {
 	return os.WriteFile(statePath(), data, 0o644)
 }
 
-// HasProgress returns true if any steps have been acted on.
-func (s *AppState) HasProgress() bool {
-	return len(s.Steps) > 0
-}
-
-// IsSessionComplete returns true if every selected step has been completed or skipped.
-func (s *AppState) IsSessionComplete() bool {
-	if len(s.SelectedSteps) == 0 || len(s.Steps) == 0 {
-		return false
-	}
-	for id, sel := range s.SelectedSteps {
-		if !sel {
-			continue
-		}
-		status := s.Steps[id]
-		if status != StatusCompleted && status != StatusSkipped {
-			return false
-		}
-	}
-	return true
-}
-
-// Archive moves current steps to prev_steps and resets for a new session.
-func (s *AppState) Archive() {
-	s.PrevSteps = s.Steps
-	s.Steps = make(map[string]StepStatus)
-	s.SelectedSteps = nil
-	s.LastStepIndex = 0
-}
-
 // Reset clears all progress.
 func (s *AppState) Reset() {
 	s.Steps = make(map[string]StepStatus)
 	s.SelectedSteps = nil
-	s.LastStepIndex = 0
 }

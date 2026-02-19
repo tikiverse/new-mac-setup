@@ -12,10 +12,6 @@ var (
 	colorText    = lipgloss.Color("#cdd6f4")
 	colorSubtext = lipgloss.Color("#a6adc8")
 
-	styleBanner = lipgloss.NewStyle().
-			Foreground(colorBlue).
-			Bold(true)
-
 	styleTitle = lipgloss.NewStyle().
 			Foreground(colorMauve).
 			Bold(true)
