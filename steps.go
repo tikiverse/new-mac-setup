@@ -1,0 +1,455 @@
+package main
+
+// Step represents a single setup task.
+type Step struct {
+	ID                 string
+	Category           string
+	Name               string
+	Description        string
+	Commands           []string
+	ManualInstructions string
+	RequiresAdmin      bool
+	DependsOn          []string
+}
+
+// AllSteps returns the full ordered list of setup steps derived from the notion export.
+func AllSteps() []Step {
+	return []Step{
+		// ── System Preferences ──────────────────────────────────────────
+		{
+			ID:          "key-repeat",
+			Category:    "System Preferences",
+			Name:        "Fast key repeat rate",
+			Description: "Set key repeat to fastest setting (1).",
+			Commands:    []string{`defaults write -g KeyRepeat -int 1`},
+		},
+		{
+			ID:          "dock-active-only",
+			Category:    "System Preferences",
+			Name:        "Dock: show only active apps",
+			Description: "Clear persistent dock icons so only running apps appear.",
+			Commands: []string{
+				`defaults write com.apple.dock persistent-apps -array '()'`,
+				`killall Dock`,
+			},
+		},
+		{
+			ID:          "mission-control",
+			Category:    "System Preferences",
+			Name:        "Mission Control: disable auto-rearrange",
+			Description: "Prevent Spaces from reordering based on recent use.",
+			Commands:    []string{`defaults write com.apple.dock mru-spaces -int 0`},
+		},
+		{
+			ID:          "expand-save-panel",
+			Category:    "System Preferences",
+			Name:        "Expand save panels by default",
+			Description: "Always show the full save dialog instead of the compact one.",
+			Commands: []string{
+				`defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true`,
+				`defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode2 -bool true`,
+			},
+		},
+		{
+			ID:          "printer-quit",
+			Category:    "System Preferences",
+			Name:        "Auto-quit printer app",
+			Description: "Automatically quit the printer app once print jobs complete.",
+			Commands:    []string{`defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true`},
+		},
+		{
+			ID:          "hide-desktop-icons",
+			Category:    "System Preferences",
+			Name:        "Hide desktop icons",
+			Description: "Hide all icons on the desktop for a cleaner look.",
+			Commands:    []string{`defaults write com.apple.finder CreateDesktop -bool false`},
+		},
+		{
+			ID:          "accessibility-zoom",
+			Category:    "System Preferences",
+			Name:        "Enable Ctrl+scroll zoom",
+			Description: "Use scroll gesture with Ctrl modifier to zoom the screen.",
+			ManualInstructions: "Go to System Settings → Accessibility → Zoom\n" +
+				"Enable 'Use scroll gesture with modifier keys to zoom'\n" +
+				"Set modifier to ^ Control.",
+		},
+
+		// ── Homebrew & Terminal ─────────────────────────────────────────
+		{
+			ID:            "homebrew-install",
+			Category:      "Homebrew & Terminal",
+			Name:          "Install Homebrew",
+			Description:   "Install Homebrew package manager (also installs Xcode CLI tools).",
+			Commands:      []string{`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`},
+			RequiresAdmin: true,
+		},
+		{
+			ID:          "homebrew-path",
+			Category:    "Homebrew & Terminal",
+			Name:        "Add Homebrew to PATH",
+			Description: "Add brew shellenv to .zprofile so brew is available in new shells.",
+			Commands: []string{
+				`echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile`,
+				`eval "$(/opt/homebrew/bin/brew shellenv)"`,
+			},
+			DependsOn: []string{"homebrew-install"},
+		},
+		{
+			ID:          "homebrew-config",
+			Category:    "Homebrew & Terminal",
+			Name:        "Configure Homebrew",
+			Description: "Update, upgrade, and disable analytics.",
+			Commands: []string{
+				`brew update`,
+				`brew upgrade`,
+				`brew analytics off`,
+			},
+			DependsOn: []string{"homebrew-path"},
+		},
+
+		// ── Browser ────────────────────────────────────────────────────
+		{
+			ID:          "chrome-install",
+			Category:    "Browser",
+			Name:        "Install Google Chrome",
+			Description: "Install Chrome via Homebrew cask.",
+			Commands:    []string{`brew install --cask google-chrome`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "1password-install",
+			Category:    "Browser",
+			Name:        "Install 1Password",
+			Description: "Install 1Password via Homebrew cask.",
+			Commands:    []string{`brew install --cask 1password`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:       "1password-setup",
+			Category: "Browser",
+			Name:     "Set up 1Password",
+			Description: "Log in to 1Password and install the Chrome extension.",
+			ManualInstructions: "1. Open 1Password and sign in to your account\n" +
+				"2. Install the 1Password Chrome extension:\n" +
+				"   https://chrome.google.com/webstore/detail/1password/aeblfdkhhhdcdjpifhhbdiojplfjncoa\n" +
+				"3. Enable in incognito mode: chrome://extensions/",
+			DependsOn: []string{"1password-install", "chrome-install"},
+		},
+
+		// ── Workflow Apps ──────────────────────────────────────────────
+		{
+			ID:          "alfred-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Alfred",
+			Description: "Spotlight replacement and productivity launcher.",
+			Commands:    []string{`brew install --cask alfred`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "notion-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Notion",
+			Description: "Note-taking and workspace app.",
+			Commands:    []string{`brew install --cask notion`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "vscode-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Visual Studio Code",
+			Description: "Code editor.",
+			Commands:    []string{`brew install --cask visual-studio-code`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "iterm2-install",
+			Category:    "Workflow Apps",
+			Name:        "Install iTerm2",
+			Description: "Terminal emulator replacement.",
+			Commands:    []string{`brew install --cask iterm2`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:       "iterm2-setup",
+			Category: "Workflow Apps",
+			Name:     "Configure iTerm2",
+			Description: "Set iTerm2 appearance preferences.",
+			ManualInstructions: "Open iTerm2 → Preferences:\n" +
+				"  • Appearance → Theme: Minimal\n" +
+				"  • Profiles → Colors: Pastel (Dark)\n" +
+				"  • Set background to #1b1f22\n" +
+				"  • Set blue to #0dc8ff",
+			DependsOn: []string{"iterm2-install"},
+		},
+		{
+			ID:          "caffeine-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Caffeine",
+			Description: "Prevents Mac from sleeping.",
+			Commands:    []string{`brew install --cask caffeine`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "rectangle-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Rectangle",
+			Description: "Window management with keyboard shortcuts.",
+			Commands:    []string{`brew install --cask rectangle`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:       "rectangle-setup",
+			Category: "Workflow Apps",
+			Name:     "Configure Rectangle",
+			Description: "Grant permissions and enable launch at login.",
+			ManualInstructions: "Open Rectangle:\n" +
+				"  • Grant Accessibility permission when prompted\n" +
+				"  • Enable 'Launch at Login'",
+			DependsOn: []string{"rectangle-install"},
+		},
+		{
+			ID:          "itsycal-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Itsycal",
+			Description: "Tiny menu-bar calendar.",
+			Commands:    []string{`brew install --cask itsycal`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:       "itsycal-setup",
+			Category: "Workflow Apps",
+			Name:     "Configure Itsycal",
+			Description: "Set itsycal preferences.",
+			ManualInstructions: "Open Itsycal:\n" +
+				"  • Enable 'Launch at Login'\n" +
+				"  • Highlight M, T, Th in the weekly view",
+			DependsOn: []string{"itsycal-install"},
+		},
+		{
+			ID:       "things-install",
+			Category: "Workflow Apps",
+			Name:     "Install Things 3",
+			Description: "Task manager from the Mac App Store.",
+			ManualInstructions: "Open the Mac App Store and install Things 3.",
+		},
+
+		// ── Finder Settings ────────────────────────────────────────────
+		{
+			ID:          "finder-extensions",
+			Category:    "Finder Settings",
+			Name:        "Show all filename extensions",
+			Description: "Always display file extensions in Finder.",
+			Commands:    []string{`defaults write NSGlobalDomain AppleShowAllExtensions -bool true`},
+		},
+		{
+			ID:          "finder-status-bar",
+			Category:    "Finder Settings",
+			Name:        "Show Finder status bar",
+			Description: "Display the status bar at the bottom of Finder windows.",
+			Commands:    []string{`defaults write com.apple.finder ShowStatusBar -bool true`},
+		},
+		{
+			ID:          "finder-path-bar",
+			Category:    "Finder Settings",
+			Name:        "Show Finder path bar",
+			Description: "Display the path bar at the bottom of Finder windows.",
+			Commands:    []string{`defaults write com.apple.finder ShowPathbar -bool true`},
+		},
+		{
+			ID:          "finder-library",
+			Category:    "Finder Settings",
+			Name:        "Show ~/Library folder",
+			Description: "Unhide the Library folder in your home directory.",
+			Commands:    []string{`chflags nohidden ~/Library`},
+		},
+		{
+			ID:          "finder-default-home",
+			Category:    "Finder Settings",
+			Name:        "Set Finder default to Home",
+			Description: "New Finder windows open to your home directory.",
+			Commands: []string{
+				`defaults write com.apple.finder NewWindowTarget PfHm`,
+				`killall Finder`,
+			},
+		},
+		{
+			ID:          "finder-search-scope",
+			Category:    "Finder Settings",
+			Name:        "Search current folder by default",
+			Description: "Finder searches the current folder instead of the whole Mac.",
+			Commands:    []string{`defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"`},
+		},
+		{
+			ID:          "snap-to-grid",
+			Category:    "Finder Settings",
+			Name:        "Enable snap-to-grid for icons",
+			Description: "Icons snap to a grid on the desktop and in icon views.",
+			Commands: []string{
+				`/usr/libexec/PlistBuddy -c "Set :DesktopViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist`,
+				`/usr/libexec/PlistBuddy -c "Set :FK_StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist`,
+				`/usr/libexec/PlistBuddy -c "Set :StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist`,
+			},
+		},
+
+		// ── Media Apps ─────────────────────────────────────────────────
+		{
+			ID:          "spotify-install",
+			Category:    "Media Apps",
+			Name:        "Install Spotify",
+			Description: "Music streaming app.",
+			Commands:    []string{`brew install --cask spotify`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "vlc-install",
+			Category:    "Media Apps",
+			Name:        "Install VLC",
+			Description: "Universal media player.",
+			Commands:    []string{`brew install --cask vlc`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "ffmpeg-install",
+			Category:    "Media Apps",
+			Name:        "Install ffmpeg",
+			Description: "CLI tool for video/audio conversion.",
+			Commands:    []string{`brew install ffmpeg`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "youtube-dl-install",
+			Category:    "Media Apps",
+			Name:        "Install youtube-dl",
+			Description: "Download videos from YouTube and other sites.",
+			Commands:    []string{`brew install youtube-dl`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "flux-install",
+			Category:    "Media Apps",
+			Name:        "Install f.lux",
+			Description: "Adjusts screen color temperature at night.",
+			Commands:    []string{`brew install --cask flux`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "zoom-install",
+			Category:    "Media Apps",
+			Name:        "Install Zoom",
+			Description: "Video conferencing app.",
+			Commands:    []string{`brew install --cask zoom`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+
+		// ── Development ────────────────────────────────────────────────
+		{
+			ID:          "n-install",
+			Category:    "Development",
+			Name:        "Install Node.js via n",
+			Description: "Install n version manager and latest Node.js.",
+			Commands: []string{
+				`curl -L https://bit.ly/n-install | bash`,
+			},
+		},
+		{
+			ID:          "docker-install",
+			Category:    "Development",
+			Name:        "Install Docker",
+			Description: "Container runtime.",
+			Commands:    []string{`brew install docker`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+		{
+			ID:          "brew-formulae",
+			Category:    "Development",
+			Name:        "Install CLI tools (brew formulae)",
+			Description: "fzf, ripgrep, jq, neovim, tmux, tree, httpie, tldr, mosh, pnpm, gron, just, llm, mcfly, slides, wifi-password.",
+			Commands: []string{
+				`brew install fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password`,
+			},
+			DependsOn: []string{"homebrew-config"},
+		},
+
+		// ── Keyboard ───────────────────────────────────────────────────
+		{
+			ID:       "hyperkey-install",
+			Category: "Keyboard",
+			Name:     "Install Hyperkey",
+			Description: "Remap Caps Lock to Hyper key (Ctrl+Shift+Cmd+Opt), quick press = Escape.",
+			ManualInstructions: "1. Download and install from https://hyperkey.app/\n" +
+				"2. Map Caps Lock → Hyper Key\n" +
+				"3. Set quick press to Escape",
+		},
+
+		// ── Chrome Extensions ──────────────────────────────────────────
+		{
+			ID:       "chrome-extensions",
+			Category: "Chrome Extensions",
+			Name:     "Install Chrome extensions",
+			Description: "Manually install recommended Chrome extensions.",
+			ManualInstructions: "Install these Chrome extensions:\n\n" +
+				"  • uBlock Origin — https://github.com/gorhill/uBlock#installation\n" +
+				"  • Vimium — https://chromewebstore.google.com/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb\n" +
+				"  • Old Reddit Redirect — https://chrome.google.com/webstore/detail/old-reddit-redirect/dneaehbmnbhcippjikoajpoabadpodje\n" +
+				"  • Reddit Enhancement Suite — https://chrome.google.com/webstore/detail/reddit-enhancement-suite/kbmfpngjjgdllneeigpgjifpgocmfgmb\n" +
+				"  • Instapaper — https://chrome.google.com/webstore/detail/instapaper/ldjkgaaoikpmhmkelcgkgacicjfbofhh\n" +
+				"  • YouTube Playback Speed Control — https://chrome.google.com/webstore/detail/youtube-playback-speed-co/hdannnflhlmdablckfkjpleikpphncik\n" +
+				"  • Also: Cold Turkey Blocker, Loom, OneTab, Readwise Highlighter, React DevTools",
+			DependsOn: []string{"chrome-install"},
+		},
+		{
+			ID:       "chrome-flags",
+			Category: "Chrome Extensions",
+			Name:     "Configure Chrome flags & settings",
+			Description: "Disable hardware media key handling so Spotify isn't interrupted by YouTube.",
+			ManualInstructions: "1. Open chrome://flags/#hardware-media-key-handling → Disable\n" +
+				"2. To prevent Cmd+Shift+I opening Mail instead of DevTools:\n" +
+				"   https://apple.stackexchange.com/a/108129",
+			DependsOn: []string{"chrome-install"},
+		},
+
+		// ── Additional Tweaks ──────────────────────────────────────────
+		{
+			ID:          "screenshots-dir",
+			Category:    "Additional Tweaks",
+			Name:        "Change screenshots directory",
+			Description: "Save screenshots to ~/Screenshots instead of Desktop.",
+			Commands: []string{
+				`mkdir -p ~/Screenshots`,
+				`defaults write com.apple.screencapture location -string "${HOME}/Screenshots"`,
+			},
+		},
+		{
+			ID:          "soundsource-install",
+			Category:    "Additional Tweaks",
+			Name:        "Install SoundSource",
+			Description: "Advanced audio control for Mac.",
+			Commands:    []string{`brew install --cask soundsource`},
+			DependsOn:   []string{"homebrew-config"},
+		},
+	}
+}
+
+// Categories returns the unique category names in order.
+func Categories() []string {
+	seen := map[string]bool{}
+	var cats []string
+	for _, s := range AllSteps() {
+		if !seen[s.Category] {
+			seen[s.Category] = true
+			cats = append(cats, s.Category)
+		}
+	}
+	return cats
+}
+
+// StepsForCategories returns only steps whose category is in the given set.
+func StepsForCategories(cats map[string]bool) []Step {
+	var out []Step
+	for _, s := range AllSteps() {
+		if cats[s.Category] {
+			out = append(out, s)
+		}
+	}
+	return out
+}
