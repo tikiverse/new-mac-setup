@@ -11,9 +11,10 @@ System prefs, Homebrew, browsers, dev tools (Node, Docker, CLI utilities), Finde
 ## Usage
 
 ```
-go run .            # interactive setup
-go run . --dry-run  # dry-run (prints commands, doesn't execute)
-go run . -n         # same, shorthand
+./mac-setup            # interactive setup
+./mac-setup --dry-run  # dry-run (prints commands, doesn't execute)
+./mac-setup -n         # same, shorthand
+go run .               # run directly from source
 ```
 
 ## Controls
