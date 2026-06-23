@@ -347,22 +347,22 @@ func TestFailurePauseSkip(t *testing.T) {
 	if m.runWaitFail {
 		t.Fatal("expected runWaitFail cleared after skip")
 	}
-	if m.state.Steps[step.ID] != StatusFailed {
-		t.Fatalf("skip should record the step failed, got %q", m.state.Steps[step.ID])
+	if m.state.Steps[step.ID] != StatusSkipped {
+		t.Fatalf("skip should record the step skipped, got %q", m.state.Steps[step.ID])
 	}
 	if m.runIndex == 0 {
 		t.Fatal("skip should advance past the failed step")
 	}
 	var logged bool
 	for _, e := range m.runLog {
-		if e.name == step.Name && e.status == "fail" {
+		if e.name == step.Name && e.status == "skip" {
 			logged = true
 		}
 	}
 	if !logged {
-		t.Fatal("skip should add a fail entry to the run log")
+		t.Fatal("skip should add a skip entry to the run log")
 	}
-	t.Logf("PASS: skip records failure and advances")
+	t.Logf("PASS: skip records skipped status and advances")
 }
 
 func TestFailurePauseAbort(t *testing.T) {
@@ -381,6 +381,52 @@ func TestFailurePauseAbort(t *testing.T) {
 		t.Fatalf("abort should record the step failed, got %q", m.state.Steps[step.ID])
 	}
 	t.Logf("PASS: abort records failure and stops the run")
+}
+
+func TestRunReoffersFailedAndSkipped(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.dryRun = true
+
+	firstCat := m.categories[0]
+	var firstCatSteps []Step
+	for _, s := range AllSteps() {
+		if s.Category == firstCat {
+			firstCatSteps = append(firstCatSteps, s)
+		}
+	}
+
+	// Mark one completed (should be skipped), one failed and one skipped
+	// (both should be re-offered).
+	m.state.Steps[firstCatSteps[0].ID] = StatusCompleted
+	m.state.Steps[firstCatSteps[1].ID] = StatusFailed
+	m.state.Steps[firstCatSteps[2].ID] = StatusSkipped
+
+	var tm tea.Model = m
+	tm = sendKey(tm, "G")
+	m = tm.(model)
+
+	if m.screen != screenCategoryRun {
+		t.Fatalf("expected category run screen, got %d", m.screen)
+	}
+	if m.isCategoryDone(firstCat) {
+		t.Fatal("category with a skipped/failed step should not be marked done")
+	}
+
+	got := make(map[string]bool)
+	for _, s := range m.runSteps {
+		got[s.ID] = true
+	}
+	if got[firstCatSteps[0].ID] {
+		t.Fatal("completed step should not be re-offered")
+	}
+	if !got[firstCatSteps[1].ID] {
+		t.Fatal("previously failed step should be re-offered")
+	}
+	if !got[firstCatSteps[2].ID] {
+		t.Fatal("previously skipped step should be re-offered")
+	}
+	t.Logf("PASS: failed/skipped steps re-offered, completed skipped")
 }
 
 func contains(s, substr string) bool {

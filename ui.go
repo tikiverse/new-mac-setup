@@ -264,12 +264,12 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.runFailOutput = ""
 				return m.runCurrentStep()
 			case "s", "S":
-				// Skip: record the failure and move on.
+				// Skip: record the choice and move on.
 				m.runWaitFail = false
 				m.runFailStep = nil
 				m.runFailOutput = ""
-				m.state.Steps[step.ID] = StatusFailed
-				m.runLog = append(m.runLog, runLogEntry{name: step.Name, status: "fail"})
+				m.state.Steps[step.ID] = StatusSkipped
+				m.runLog = append(m.runLog, runLogEntry{name: step.Name, status: "skip"})
 				m.saveState()
 				return m.runNextStep()
 			case "a", "A":
@@ -331,9 +331,9 @@ func (m model) startCategoryRun() (tea.Model, tea.Cmd) {
 	var steps []Step
 	for _, s := range AllSteps() {
 		if s.Category == cat && m.stepSelected[s.ID] {
-			// Skip already completed/skipped steps
-			status := m.state.Steps[s.ID]
-			if status == StatusCompleted || status == StatusSkipped {
+			// Only skip steps that fully completed; previously failed or
+			// skipped steps are re-offered so the user is prompted again.
+			if m.state.Steps[s.ID] == StatusCompleted {
 				continue
 			}
 			steps = append(steps, s)
@@ -440,8 +440,9 @@ func (m model) isCategoryDone(cat string) bool {
 	for _, s := range AllSteps() {
 		if s.Category == cat && m.stepSelected[s.ID] {
 			hasSelected = true
-			status := m.state.Steps[s.ID]
-			if status != StatusCompleted && status != StatusSkipped {
+			// A skipped or failed step leaves the category incomplete so it
+			// keeps showing as pending and is re-offered on the next run.
+			if m.state.Steps[s.ID] != StatusCompleted {
 				return false
 			}
 		}
@@ -576,7 +577,14 @@ func (m model) viewStepSelect() string {
 		if step.ManualInstructions != "" && len(step.Commands) == 0 {
 			manual = styleWarning.Render(" ✋")
 		}
-		b.WriteString(fmt.Sprintf("  %s%s %s%s%s\n", cursor, check, name, manual, desc))
+		hist := ""
+		switch status {
+		case StatusFailed:
+			hist = styleError.Render(" (failed before)")
+		case StatusSkipped:
+			hist = styleWarning.Render(" (skipped before)")
+		}
+		b.WriteString(fmt.Sprintf("  %s%s %s%s%s%s\n", cursor, check, name, manual, hist, desc))
 	}
 
 	b.WriteString("\n")
@@ -611,6 +619,8 @@ func (m model) viewCategoryRun() string {
 			icon = styleSuccess.Render("✓")
 		case "fail":
 			icon = styleError.Render("✗")
+		case "skip":
+			icon = styleSkipped.Render("↷")
 		case "manual":
 			icon = styleWarning.Render("✋")
 		}
@@ -622,6 +632,14 @@ func (m model) viewCategoryRun() string {
 		step := *m.runFailStep
 		b.WriteString("\n")
 		b.WriteString(styleError.Render(fmt.Sprintf("  ✗ %s failed", step.Name)) + "\n")
+		// State is written only when the user resolves this pause, so it still
+		// holds the status from a previous run here.
+		switch m.state.Steps[step.ID] {
+		case StatusFailed:
+			b.WriteString(styleWarning.Render("  ↻ this step also failed on a previous run") + "\n")
+		case StatusSkipped:
+			b.WriteString(styleWarning.Render("  ↻ you skipped this step on a previous run") + "\n")
+		}
 		b.WriteString("\n")
 		for _, line := range tailLines(m.runFailOutput, 12) {
 			b.WriteString(styleDim.Render("  "+line) + "\n")
@@ -644,18 +662,20 @@ func (m model) viewCategoryRun() string {
 		b.WriteString("\n")
 
 		// Count results
-		okCount, failCount := 0, 0
+		okCount, failCount, skipCount := 0, 0, 0
 		for _, e := range m.runLog {
 			switch e.status {
 			case "ok", "manual":
 				okCount++
 			case "fail":
 				failCount++
+			case "skip":
+				skipCount++
 			}
 		}
 
-		if failCount > 0 {
-			b.WriteString(styleWarning.Render(fmt.Sprintf("  Done — %d completed, %d failed", okCount, failCount)) + "\n")
+		if failCount > 0 || skipCount > 0 {
+			b.WriteString(styleWarning.Render(fmt.Sprintf("  Done — %d completed, %d failed, %d skipped", okCount, failCount, skipCount)) + "\n")
 		} else {
 			b.WriteString(styleSuccess.Render(fmt.Sprintf("  Done — %d steps completed", okCount)) + "\n")
 		}
