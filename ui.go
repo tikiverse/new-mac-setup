@@ -62,16 +62,17 @@ type model struct {
 	confirmReset bool
 
 	// Category run state
-	runCategory   string        // category currently being run
-	runSteps      []Step        // steps to run in this category
-	runLog        []runLogEntry // log of completed steps
-	runIndex      int           // index of currently running step
-	runWaitManual bool          // waiting for Enter on a manual step
-	runManualStep *Step         // the manual step we're waiting on
-	runWaitFail   bool          // paused on a failed step, awaiting retry/skip/abort
-	runFailStep   *Step         // the step that failed
-	runFailOutput string        // captured output of the failed step
-	runDone       bool          // all steps finished
+	runCategory   string         // category currently being run
+	runSteps      []Step         // steps to run in this category
+	runLog        []runLogEntry  // log of completed steps
+	runIndex      int            // index of currently running step
+	runWaitManual bool           // waiting for Enter on a manual step
+	runManualStep *Step          // the manual step we're waiting on
+	runWaitFail   bool           // paused on a failed step, awaiting retry/skip/abort
+	runFailStep   *Step          // the step that failed
+	runFailOutput string         // captured output of the failed step
+	runFailCounts map[string]int // per-step failure count within the current run
+	runDone       bool           // all steps finished
 
 	// Mode
 	dryRun bool
@@ -124,6 +125,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.runWaitFail = true
 			m.runFailStep = &s
 			m.runFailOutput = msg.result.Output
+			if m.runFailCounts == nil {
+				m.runFailCounts = make(map[string]int)
+			}
+			m.runFailCounts[s.ID]++
 			return m, nil
 		}
 		entry := runLogEntry{name: msg.step.Name, status: "ok"}
@@ -353,6 +358,7 @@ func (m model) startCategoryRun() (tea.Model, tea.Cmd) {
 	m.runDone = false
 	m.runWaitManual = false
 	m.runManualStep = nil
+	m.runFailCounts = make(map[string]int)
 
 	// Start running the first step
 	return m.runCurrentStep()
@@ -632,6 +638,9 @@ func (m model) viewCategoryRun() string {
 		step := *m.runFailStep
 		b.WriteString("\n")
 		b.WriteString(styleError.Render(fmt.Sprintf("  ✗ %s failed", step.Name)) + "\n")
+		if n := m.runFailCounts[step.ID]; n > 1 {
+			b.WriteString(styleWarning.Render(fmt.Sprintf("  ↻ failed %d times this run", n)) + "\n")
+		}
 		// State is written only when the user resolves this pause, so it still
 		// holds the status from a previous run here.
 		switch m.state.Steps[step.ID] {

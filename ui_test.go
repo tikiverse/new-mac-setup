@@ -365,6 +365,30 @@ func TestFailurePauseSkip(t *testing.T) {
 	t.Logf("PASS: skip records skipped status and advances")
 }
 
+func TestFailurePauseTracksRetryCount(t *testing.T) {
+	tm, step := startFailedRun(t)
+	if got := tm.(model).runFailCounts[step.ID]; got != 1 {
+		t.Fatalf("expected 1 failure recorded, got %d", got)
+	}
+
+	// Retry, then fail again: the in-run counter should climb.
+	tm = sendKey(tm, "r")
+	failResult := RunResult{Output: "still broken", Err: errors.New("exit 1")}
+	tm, _ = tm.Update(stepResultMsg{step: step, result: failResult})
+	m := tm.(model)
+
+	if !m.runWaitFail {
+		t.Fatal("expected to be paused on failure again")
+	}
+	if got := m.runFailCounts[step.ID]; got != 2 {
+		t.Fatalf("expected 2 failures this run, got %d", got)
+	}
+	if !contains(m.View(), "failed 2 times this run") {
+		t.Fatal("failure pause should show the in-run retry count")
+	}
+	t.Logf("PASS: in-run retry count tracked across retries")
+}
+
 func TestFailurePauseAbort(t *testing.T) {
 	tm, step := startFailedRun(t)
 
