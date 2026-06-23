@@ -23,6 +23,13 @@ func AllSteps() []Step {
 			Commands:    []string{`defaults write -g KeyRepeat -int 1`},
 		},
 		{
+			ID:          "press-and-hold",
+			Category:    "System Preferences",
+			Name:        "Disable press-and-hold for accents",
+			Description: "Enable key repeat instead of the accent character popup when holding a key.",
+			Commands:    []string{`defaults write -g ApplePressAndHoldEnabled -bool false`},
+		},
+		{
 			ID:          "dock-active-only",
 			Category:    "System Preferences",
 			Name:        "Dock: show only active apps",
@@ -212,11 +219,14 @@ func AllSteps() []Step {
 				"  • Highlight M, T, Th in the weekly view",
 		},
 		{
-			ID:       "things-install",
-			Category: "Workflow Apps",
-			Name:     "Install Things 3",
-			Description: "Task manager from the Mac App Store.",
-			ManualInstructions: "Open the Mac App Store and install Things 3.",
+			ID:          "things-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Things 3",
+			Description: "Task manager from the Mac App Store (requires being signed in to the App Store).",
+			Commands: []string{
+				`brew install mas`,
+				`mas install 904280696`,
+			},
 		},
 
 		// ── Finder Settings ────────────────────────────────────────────
@@ -300,11 +310,11 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install ffmpeg`},
 		},
 		{
-			ID:          "youtube-dl-install",
+			ID:          "yt-dlp-install",
 			Category:    "Media Apps",
-			Name:        "Install youtube-dl",
-			Description: "Download videos from YouTube and other sites.",
-			Commands:    []string{`brew install youtube-dl`},
+			Name:        "Install yt-dlp",
+			Description: "Download videos from YouTube and other sites (maintained youtube-dl fork).",
+			Commands:    []string{`brew install yt-dlp`},
 		},
 		{
 			ID:          "flux-install",
@@ -339,12 +349,19 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install docker`},
 		},
 		{
+			ID:          "mas-install",
+			Category:    "Development",
+			Name:        "Install mas (Mac App Store CLI)",
+			Description: "Command-line installer for Mac App Store apps.",
+			Commands:    []string{`brew install mas`},
+		},
+		{
 			ID:          "brew-formulae",
 			Category:    "Development",
 			Name:        "Install CLI tools (brew formulae)",
-			Description: "fzf, ripgrep, jq, neovim, tmux, tree, httpie, tldr, mosh, pnpm, gron, just, llm, mcfly, slides, wifi-password.",
+			Description: "gh, fzf, ripgrep, jq, neovim, tmux, tree, httpie, tldr, mosh, pnpm, gron, just, llm, mcfly, slides, wifi-password.",
 			Commands: []string{
-				`brew install fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password`,
+				`brew install gh fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password`,
 			},
 
 		},
