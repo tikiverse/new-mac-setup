@@ -14,7 +14,7 @@ func TestParseArgs(t *testing.T) {
 		{"id then run", []string{"finder-path-bar", "--run"}, cliOptions{stepID: "finder-path-bar", action: actionRun}, false},
 		{"id then done", []string{"finder-path-bar", "--done"}, cliOptions{stepID: "finder-path-bar", action: actionDone}, false},
 		{"flag then id", []string{"--copy", "finder-path-bar"}, cliOptions{stepID: "finder-path-bar", action: actionCopy}, false},
-		{"undone", []string{"x", "--undone"}, cliOptions{stepID: "x", action: actionUndone}, false},
+		{"reset", []string{"x", "--reset"}, cliOptions{stepID: "x", action: actionReset}, false},
 		{"run dry-run shorthand", []string{"x", "--run", "-n"}, cliOptions{stepID: "x", action: actionRun, dryRun: true}, false},
 		{"help", []string{"--help"}, cliOptions{help: true}, false},
 		{"conflicting actions", []string{"x", "--run", "--copy"}, cliOptions{}, true},
@@ -60,7 +60,7 @@ func TestStepByID(t *testing.T) {
 	}
 }
 
-func TestRunDirectDoneUndone(t *testing.T) {
+func TestRunDirectDoneReset(t *testing.T) {
 	t.Setenv("HOME", t.TempDir()) // isolate state.json under a temp home
 	const id = "finder-path-bar"
 
@@ -71,8 +71,8 @@ func TestRunDirectDoneUndone(t *testing.T) {
 		t.Fatalf("expected %s completed, got %q", id, s.Steps[id])
 	}
 
-	if code := runDirect(cliOptions{stepID: id, action: actionUndone}); code != 0 {
-		t.Fatalf("--undone returned %d", code)
+	if code := runDirect(cliOptions{stepID: id, action: actionReset}); code != 0 {
+		t.Fatalf("--reset returned %d", code)
 	}
 	if s := LoadState(); s.Steps[id] != "" {
 		t.Fatalf("expected %s cleared, got %q", id, s.Steps[id])

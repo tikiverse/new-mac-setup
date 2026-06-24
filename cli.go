@@ -15,7 +15,7 @@ Usage:
   mac-setup <step-id>            Show the step's metadata and command(s)
   mac-setup <step-id> --run      Run the step directly in this terminal
   mac-setup <step-id> --done     Mark the step as done (no run)
-  mac-setup <step-id> --undone   Mark the step as not done
+  mac-setup <step-id> --reset    Mark the step as not done (clear its status)
   mac-setup <step-id> --copy     Copy the step's command(s) to the clipboard
 
 Flags:
@@ -32,7 +32,7 @@ const (
 	actionShow cliAction = iota // default: print metadata + command, no execution
 	actionRun
 	actionDone
-	actionUndone
+	actionReset
 	actionCopy
 )
 
@@ -49,7 +49,7 @@ func parseArgs(args []string) (cliOptions, error) {
 	actionSet := false
 	setAction := func(a cliAction) error {
 		if actionSet {
-			return fmt.Errorf("only one of --run, --done, --undone, --copy may be given")
+			return fmt.Errorf("only one of --run, --done, --reset, --copy may be given")
 		}
 		o.action = a
 		actionSet = true
@@ -66,8 +66,8 @@ func parseArgs(args []string) (cliOptions, error) {
 			if err := setAction(actionDone); err != nil {
 				return o, err
 			}
-		case "--undone":
-			if err := setAction(actionUndone); err != nil {
+		case "--reset":
+			if err := setAction(actionReset); err != nil {
 				return o, err
 			}
 		case "--copy":
@@ -123,13 +123,13 @@ func runDirect(opts cliOptions) int {
 		fmt.Printf("Marked %s as done.\n", step.ID)
 		return 0
 
-	case actionUndone:
+	case actionReset:
 		delete(state.Steps, step.ID)
 		if err := state.Save(); err != nil {
 			fmt.Fprintf(os.Stderr, "Save failed: %v\n", err)
 			return 1
 		}
-		fmt.Printf("Marked %s as not done.\n", step.ID)
+		fmt.Printf("Reset %s to not done.\n", step.ID)
 		return 0
 	}
 
@@ -171,20 +171,36 @@ func showStep(step Step, state *AppState) int {
 	if step.RequiresAdmin {
 		fmt.Printf("  Requires:    admin (sudo)\n")
 	}
-	if step.IsManual() {
+	manual := step.IsManual()
+	if manual {
 		fmt.Println("  Manual step — instructions:")
 		for _, line := range strings.Split(step.ManualInstructions, "\n") {
 			fmt.Printf("    %s\n", line)
 		}
-		fmt.Printf("\nMark it done with: mac-setup %s --done\n", step.ID)
 	} else {
 		fmt.Println("  Command(s):")
 		for _, cmd := range step.Commands {
 			fmt.Printf("    %s\n", cmd)
 		}
-		fmt.Printf("\nRun it with: mac-setup %s --run\n", step.ID)
 	}
+
+	// Contextual help: what you can do with this step.
+	fmt.Println("\nActions:")
+	if !manual {
+		fmt.Printf("  mac-setup %s --run     run it directly in this terminal\n", step.ID)
+	}
+	fmt.Printf("  mac-setup %s --done    mark it done (no run)\n", step.ID)
+	fmt.Printf("  mac-setup %s --reset   mark it not done (clear its status)\n", step.ID)
+	fmt.Printf("  mac-setup %s --copy    copy %s to the clipboard\n", step.ID, copyTarget(step))
 	return 0
+}
+
+// copyTarget describes what --copy puts on the clipboard for a step.
+func copyTarget(step Step) string {
+	if step.IsManual() {
+		return "its instructions"
+	}
+	return "its command(s)"
 }
 
 // statusLabel renders a persisted step status for display.

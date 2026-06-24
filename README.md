@@ -26,7 +26,7 @@ just that step:
 ./mac-setup finder-path-bar            # show its metadata and command(s)
 ./mac-setup finder-path-bar --run      # run it directly in the terminal
 ./mac-setup finder-path-bar --done     # mark as done (no run)
-./mac-setup finder-path-bar --undone   # mark as not done
+./mac-setup finder-path-bar --reset    # mark as not done (clear its status)
 ./mac-setup finder-path-bar --copy     # copy its command(s) to the clipboard
 ```
 
