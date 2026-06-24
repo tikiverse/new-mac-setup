@@ -160,38 +160,41 @@ func runDirect(opts cliOptions) int {
 }
 
 // showStep prints a step's metadata and command(s) without executing anything.
+// Colors are applied via lipgloss styles, which auto-degrade to plain text when
+// stdout is not a terminal (and honor NO_COLOR).
 func showStep(step Step, state *AppState) int {
-	fmt.Println(step.ID)
+	st := state.Steps[step.ID]
+	fmt.Println(styleTitle.Render(step.ID))
 	fmt.Printf("  Name:        %s\n", step.Name)
-	fmt.Printf("  Category:    %s\n", step.Category)
+	fmt.Printf("  Category:    %s\n", styleCategory.Render(step.Category))
 	if step.Description != "" {
-		fmt.Printf("  Description: %s\n", step.Description)
+		fmt.Printf("  Description: %s\n", styleDescription.Render(step.Description))
 	}
-	fmt.Printf("  Status:      %s\n", statusLabel(state.Steps[step.ID]))
+	fmt.Printf("  Status:      %s\n", statusStyle(st).Render(statusLabel(st)))
 	if step.RequiresAdmin {
-		fmt.Printf("  Requires:    admin (sudo)\n")
+		fmt.Printf("  Requires:    %s\n", styleAdmin.Render("admin (sudo)"))
 	}
 	manual := step.IsManual()
 	if manual {
 		fmt.Println("  Manual step — instructions:")
 		for _, line := range strings.Split(step.ManualInstructions, "\n") {
-			fmt.Printf("    %s\n", line)
+			fmt.Printf("    %s\n", styleManual.Render(line))
 		}
 	} else {
 		fmt.Println("  Command(s):")
 		for _, cmd := range step.Commands {
-			fmt.Printf("    %s\n", cmd)
+			fmt.Printf("    %s\n", styleCommand.Render(cmd))
 		}
 	}
 
 	// Contextual help: what you can do with this step.
 	fmt.Println("\nActions:")
 	if !manual {
-		fmt.Printf("  mac-setup %s --run     run it directly in this terminal\n", step.ID)
+		fmt.Printf("  mac-setup %s %s     run it directly in this terminal\n", step.ID, styleWarning.Render("--run"))
 	}
-	fmt.Printf("  mac-setup %s --done    mark it done (no run)\n", step.ID)
-	fmt.Printf("  mac-setup %s --reset   mark it not done (clear its status)\n", step.ID)
-	fmt.Printf("  mac-setup %s --copy    copy %s to the clipboard\n", step.ID, copyTarget(step))
+	fmt.Printf("  mac-setup %s %s    mark it done (no run)\n", step.ID, styleWarning.Render("--done"))
+	fmt.Printf("  mac-setup %s %s   mark it not done (clear its status)\n", step.ID, styleWarning.Render("--reset"))
+	fmt.Printf("  mac-setup %s %s    copy %s to the clipboard\n", step.ID, styleWarning.Render("--copy"), copyTarget(step))
 	return 0
 }
 
