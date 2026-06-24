@@ -12,6 +12,7 @@ const usage = `mac-setup — a-la-carte Mac setup
 Usage:
   mac-setup                      Launch the interactive TUI
   mac-setup --dry-run            Launch the TUI in dry-run mode
+  mac-setup --debug              Launch the TUI with the hidden Testing category
   mac-setup <step-id>            Show the step's metadata and command(s)
   mac-setup <step-id> --run      Run the step directly in this terminal
   mac-setup <step-id> --done     Mark the step as done (no run)
@@ -21,6 +22,7 @@ Usage:
 Flags:
   --run           Execute the step (with --dry-run, print without running)
   -n, --dry-run   With --run, print commands instead of executing them
+  --debug         Show the hidden Testing category in the TUI
   -h, --help      Show this help
 
 Step ids are shown next to each step in the TUI.
@@ -40,6 +42,7 @@ type cliOptions struct {
 	stepID string
 	action cliAction
 	dryRun bool
+	debug  bool
 	help   bool
 }
 
@@ -76,6 +79,8 @@ func parseArgs(args []string) (cliOptions, error) {
 			}
 		case "-n", "--dry-run":
 			o.dryRun = true
+		case "--debug":
+			o.debug = true
 		case "-h", "--help":
 			o.help = true
 		default:

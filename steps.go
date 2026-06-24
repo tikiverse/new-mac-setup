@@ -9,11 +9,12 @@ type Step struct {
 	Commands           []string
 	ManualInstructions string
 	RequiresAdmin      bool
+	Debug              bool // hidden from the TUI unless launched with --debug
 }
 
 // AllSteps returns the full ordered list of setup steps derived from the notion export.
 func AllSteps() []Step {
-	return []Step{
+	steps := []Step{
 		// ── System Preferences ──────────────────────────────────────────
 		{
 			ID:          "key-repeat",
@@ -521,13 +522,31 @@ func AllSteps() []Step {
 			Commands:    []string{`true`},
 		},
 	}
+
+	// The Testing category is a developer aid: its steps run no-ops to exercise
+	// the run UI and are hidden from the TUI unless launched with --debug.
+	for i := range steps {
+		if steps[i].Category == "Testing" {
+			steps[i].Debug = true
+		}
+	}
+	return steps
 }
 
 // Categories returns the unique category names in order.
 func Categories() []string {
+	return visibleCategories(true)
+}
+
+// visibleCategories returns the unique category names in order, omitting
+// categories made up solely of debug steps unless includeDebug is true.
+func visibleCategories(includeDebug bool) []string {
 	seen := map[string]bool{}
 	var cats []string
 	for _, s := range AllSteps() {
+		if s.Debug && !includeDebug {
+			continue
+		}
 		if !seen[s.Category] {
 			seen[s.Category] = true
 			cats = append(cats, s.Category)

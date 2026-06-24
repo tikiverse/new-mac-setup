@@ -88,6 +88,7 @@ type model struct {
 
 	// Mode
 	dryRun bool
+	debug  bool // show the Testing category
 }
 
 type runLogEntry struct {
@@ -96,7 +97,7 @@ type runLogEntry struct {
 }
 
 func newModel(state *AppState) model {
-	cats := Categories()
+	cats := visibleCategories(false)
 
 	stepSel := make(map[string]bool)
 	if state.SelectedSteps != nil {
@@ -592,6 +593,9 @@ func (m model) viewCategories() string {
 	b.WriteString(styleTitle.Render("  Mac Setup"))
 	if m.dryRun {
 		b.WriteString("  " + styleWarning.Render("[DRY RUN]"))
+	}
+	if m.debug {
+		b.WriteString("  " + styleWarning.Render("[DEBUG]"))
 	}
 	b.WriteString("\n\n")
 

@@ -32,6 +32,7 @@ System prefs, Homebrew, browsers, dev tools (Node, Docker, CLI utilities), Finde
 ./mac-setup            # interactive setup
 ./mac-setup --dry-run  # dry-run (prints commands, doesn't execute)
 ./mac-setup -n         # same, shorthand
+./mac-setup --debug    # also show the Testing category (no-op steps for trying the run UI)
 go run .               # run directly from source
 ```
 
