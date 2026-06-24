@@ -68,6 +68,8 @@ executed.
 | `R` | Reset step state |
 | `q` | Quit (progress saved) |
 
+While a step runs, its command output streams live into a scrollable pane (ANSI codes and progress bars are cleaned up). Scroll it with `↑/↓` or `PgUp/PgDn`.
+
 When a step fails mid-run, the run pauses and shows the captured output so you can decide what to do:
 
 | Key | Action |

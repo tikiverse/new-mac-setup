@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -25,11 +26,18 @@ type runCategoryMsg struct {
 	steps    []Step
 }
 
-// stepResultMsg is sent after each step completes during a category run.
-type stepResultMsg struct {
+// streamLineMsg carries one line of streamed output from the running step.
+// When replace is true, it overwrites the previous line (a \r progress update).
+type streamLineMsg struct {
+	line    string
+	replace bool
+}
+
+// stepFinishedMsg is sent when a step's commands finish (or fail).
+type stepFinishedMsg struct {
 	step   Step
-	result RunResult
-	manual bool // true if this was a manual step (just acknowledged)
+	err    error
+	output string // full captured output of the step
 }
 
 // manualStepMsg indicates a manual step needs user acknowledgement.
@@ -74,6 +82,9 @@ type model struct {
 	runFailCounts   map[string]int // per-step failure count within the current run
 	runDone         bool           // all steps finished
 	runReturnScreen screen         // screen to return to when the run finishes
+	runStream       chan tea.Msg   // channel of streamed output for the running step
+	runLines        []string       // accumulated output lines for the current run
+	runViewport     viewport.Model // scrollable view of streamed output
 
 	// Mode
 	dryRun bool
@@ -103,6 +114,7 @@ func newModel(state *AppState) model {
 		state:        state,
 		categories:   cats,
 		stepSelected: stepSel,
+		runViewport:  viewport.New(80, 14),
 	}
 }
 
@@ -117,27 +129,45 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		w := msg.Width - 4
+		if w < 20 {
+			w = 20
+		}
+		h := msg.Height / 2
+		if h < 6 {
+			h = 6
+		} else if h > 16 {
+			h = 16
+		}
+		m.runViewport.Width = w
+		m.runViewport.Height = h
 		return m, nil
 
-	case stepResultMsg:
-		if !msg.manual && msg.result.Err != nil {
+	case streamLineMsg:
+		if msg.replace && len(m.runLines) > 0 {
+			m.runLines[len(m.runLines)-1] = msg.line
+		} else {
+			m.runLines = append(m.runLines, msg.line)
+		}
+		m.runViewport.SetContent(strings.Join(m.runLines, "\n"))
+		m.runViewport.GotoBottom()
+		return m, waitForStream(m.runStream)
+
+	case stepFinishedMsg:
+		if msg.err != nil {
 			// Pause and let the user decide: retry, skip, or abort.
 			s := msg.step
 			m.runWaitFail = true
 			m.runFailStep = &s
-			m.runFailOutput = msg.result.Output
+			m.runFailOutput = msg.output
 			if m.runFailCounts == nil {
 				m.runFailCounts = make(map[string]int)
 			}
 			m.runFailCounts[s.ID]++
 			return m, nil
 		}
-		entry := runLogEntry{name: msg.step.Name, status: "ok"}
-		if msg.manual {
-			entry.status = "manual"
-		}
 		m.state.Steps[msg.step.ID] = StatusCompleted
-		m.runLog = append(m.runLog, entry)
+		m.runLog = append(m.runLog, runLogEntry{name: msg.step.Name, status: "ok"})
 		m.saveState()
 		// Continue to next step
 		return m.runNextStep()
@@ -315,14 +345,14 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if m.runWaitManual {
 			if key == "enter" {
-				// Acknowledge manual step
+				// Acknowledge manual step and advance.
 				step := *m.runManualStep
 				m.runWaitManual = false
 				m.runManualStep = nil
 				m.state.Steps[step.ID] = StatusCompleted
-				return m, func() tea.Msg {
-					return stepResultMsg{step: step, manual: true}
-				}
+				m.runLog = append(m.runLog, runLogEntry{name: step.Name, status: "manual"})
+				m.saveState()
+				return m.runNextStep()
 			}
 			if key == "q" {
 				m.saveState()
@@ -339,12 +369,16 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.saveState()
 				return m, tea.Quit
 			}
+			return m, nil
 		}
 		if key == "q" {
 			m.saveState()
 			return m, tea.Quit
 		}
-
+		// Streaming a step: forward keys to the viewport for scrollback.
+		var cmd tea.Cmd
+		m.runViewport, cmd = m.runViewport.Update(msg)
+		return m, cmd
 	}
 
 	return m, nil
@@ -380,6 +414,8 @@ func (m model) startCategoryRun() (tea.Model, tea.Cmd) {
 	m.runManualStep = nil
 	m.runFailCounts = make(map[string]int)
 	m.runReturnScreen = screenCategories
+	m.runLines = nil
+	m.runViewport.SetContent("")
 
 	// Start running the first step
 	return m.runCurrentStep()
@@ -415,16 +451,55 @@ func (m model) runCurrentStep() (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg { return manualStepMsg{step: step} }
 	}
 
-	// Automated step: run commands
+	// Automated step: stream commands into the viewport.
+	ch := make(chan tea.Msg, 256)
+	m.runStream = ch
 	dryRun := m.dryRun
-	return m, func() tea.Msg {
-		var result RunResult
+	go streamStep(step, dryRun, ch)
+	return m, waitForStream(ch)
+}
+
+// streamStep runs a step's commands, emitting each output line on ch followed
+// by a final stepFinishedMsg, then closes ch.
+func streamStep(step Step, dryRun bool, ch chan tea.Msg) {
+	defer close(ch)
+	var full strings.Builder
+	record := func(text string) { full.WriteString(text + "\n") }
+
+	for _, cmd := range step.Commands {
+		ch <- streamLineMsg{line: "$ " + cmd}
+		record("$ " + cmd)
+
 		if dryRun {
-			result = DryRunCommands(step.Commands)
-		} else {
-			result = RunCommands(step.Commands)
+			ch <- streamLineMsg{line: "  (dry run — skipped)"}
+			record("  (dry run — skipped)")
+			continue
 		}
-		return stepResultMsg{step: step, result: result}
+
+		err := streamCommand(cmd, func(text string, replace bool) {
+			ch <- streamLineMsg{line: text, replace: replace}
+			if !replace {
+				record(text)
+			}
+		})
+		if err != nil {
+			ch <- streamLineMsg{line: "✗ " + err.Error()}
+			record("✗ " + err.Error())
+			ch <- stepFinishedMsg{step: step, err: err, output: full.String()}
+			return
+		}
+	}
+	ch <- stepFinishedMsg{step: step, output: full.String()}
+}
+
+// waitForStream returns a command that blocks until the next streamed message.
+func waitForStream(ch chan tea.Msg) tea.Cmd {
+	return func() tea.Msg {
+		msg, ok := <-ch
+		if !ok {
+			return nil
+		}
+		return msg
 	}
 }
 
@@ -742,11 +817,14 @@ func (m model) viewCategoryRun() string {
 		b.WriteString(help("  Press [Enter] to return  •  [q] Quit"))
 		b.WriteString("\n")
 	} else if m.runIndex < len(m.runSteps) {
-		// Currently running an automated step
+		// Currently streaming an automated step's output.
 		step := m.runSteps[m.runIndex]
-		b.WriteString(fmt.Sprintf("  %s %s\n",
+		b.WriteString(fmt.Sprintf("  %s %s\n\n",
 			styleDim.Render("⋯"),
 			styleDim.Render(step.Name)))
+		b.WriteString(m.runViewport.View() + "\n\n")
+		b.WriteString(help("  [↑/↓ PgUp/PgDn] Scroll  •  [q] Quit"))
+		b.WriteString("\n")
 	}
 
 	return b.String()

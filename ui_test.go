@@ -147,7 +147,7 @@ func TestCategoryRunSequential(t *testing.T) {
 			tm = sendSpecialKey(tm, tea.KeyEnter)
 			m = tm.(model)
 		} else {
-			tm, _ = tm.Update(stepResultMsg{step: step, result: RunResult{Output: "(dry)"}})
+			tm, _ = tm.Update(stepFinishedMsg{step: step})
 			m = tm.(model)
 		}
 	}
@@ -303,8 +303,7 @@ func startFailedRun(t *testing.T) (tea.Model, Step) {
 	}
 
 	step := m.runSteps[0]
-	failResult := RunResult{Output: "boom: command failed", Err: errors.New("exit 1")}
-	tm, _ = tm.Update(stepResultMsg{step: step, result: failResult})
+	tm, _ = tm.Update(stepFinishedMsg{step: step, err: errors.New("exit 1"), output: "boom: command failed"})
 	m = tm.(model)
 
 	if !m.runWaitFail {
@@ -374,8 +373,7 @@ func TestFailurePauseTracksRetryCount(t *testing.T) {
 
 	// Retry, then fail again: the in-run counter should climb.
 	tm = sendKey(tm, "r")
-	failResult := RunResult{Output: "still broken", Err: errors.New("exit 1")}
-	tm, _ = tm.Update(stepResultMsg{step: step, result: failResult})
+	tm, _ = tm.Update(stepFinishedMsg{step: step, err: errors.New("exit 1"), output: "still broken"})
 	m := tm.(model)
 
 	if !m.runWaitFail {
