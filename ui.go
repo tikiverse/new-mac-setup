@@ -590,7 +590,8 @@ func (m model) viewStepSelect() string {
 		case StatusSkipped:
 			hist = styleWarning.Render(" (skipped before)")
 		}
-		b.WriteString(fmt.Sprintf("  %s%s %s%s%s%s\n", cursor, check, name, manual, hist, desc))
+		id := styleDim.Render(" " + step.ID)
+		b.WriteString(fmt.Sprintf("  %s%s %s%s%s%s%s\n", cursor, check, name, id, manual, hist, desc))
 	}
 
 	b.WriteString("\n")

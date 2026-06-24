@@ -429,3 +429,18 @@ func Categories() []string {
 	}
 	return cats
 }
+
+// StepByID returns the step with the given ID and whether it was found.
+func StepByID(id string) (Step, bool) {
+	for _, s := range AllSteps() {
+		if s.ID == id {
+			return s, true
+		}
+	}
+	return Step{}, false
+}
+
+// IsManual reports whether the step is a manual (instruction-only) step.
+func (s Step) IsManual() bool {
+	return s.ManualInstructions != "" && len(s.Commands) == 0
+}

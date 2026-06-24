@@ -66,3 +66,17 @@ var (
 	styleDim = lipgloss.NewStyle().
 			Foreground(colorDim)
 )
+
+// statusStyle returns the lipgloss style used to render a persisted step status.
+func statusStyle(s StepStatus) lipgloss.Style {
+	switch s {
+	case StatusCompleted:
+		return styleSuccess
+	case StatusFailed:
+		return styleError
+	case StatusSkipped:
+		return styleSkipped
+	default: // not run
+		return styleWarning
+	}
+}
