@@ -28,3 +28,11 @@ go run .               # run directly from source
 | `Backspace` or `Esc` | Back |
 | `R` | Reset step state |
 | `q` | Quit (progress saved) |
+
+When a step fails mid-run, the run pauses and shows the captured output so you can decide what to do:
+
+| Key | Action |
+|-----|--------|
+| `r` | Retry the failed step |
+| `s` | Skip it and continue |
+| `a` | Abort the rest of the run |

@@ -23,6 +23,13 @@ func AllSteps() []Step {
 			Commands:    []string{`defaults write -g KeyRepeat -int 1`},
 		},
 		{
+			ID:          "press-and-hold",
+			Category:    "System Preferences",
+			Name:        "Disable press-and-hold for accents",
+			Description: "Enable key repeat instead of the accent character popup when holding a key.",
+			Commands:    []string{`defaults write -g ApplePressAndHoldEnabled -bool false`},
+		},
+		{
 			ID:          "dock-active-only",
 			Category:    "System Preferences",
 			Name:        "Dock: show only active apps",
@@ -91,7 +98,6 @@ func AllSteps() []Step {
 				`echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile`,
 				`eval "$(/opt/homebrew/bin/brew shellenv)"`,
 			},
-
 		},
 		{
 			ID:          "homebrew-config",
@@ -103,7 +109,13 @@ func AllSteps() []Step {
 				`brew upgrade`,
 				`brew analytics off`,
 			},
-
+		},
+		{
+			ID:          "mas-install",
+			Category:    "Homebrew & Terminal",
+			Name:        "Install mas (Mac App Store CLI)",
+			Description: "Core prerequisite for Mac App Store installs (e.g. Things 3).",
+			Commands:    []string{`brew install mas`},
 		},
 
 		// ── Browser ────────────────────────────────────────────────────
@@ -122,9 +134,9 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask 1password`},
 		},
 		{
-			ID:       "1password-setup",
-			Category: "Browser",
-			Name:     "Set up 1Password",
+			ID:          "1password-setup",
+			Category:    "Browser",
+			Name:        "Set up 1Password",
 			Description: "Log in to 1Password and install the Chrome extension.",
 			ManualInstructions: "1. Open 1Password and sign in to your account\n" +
 				"2. Install the 1Password Chrome extension:\n" +
@@ -162,9 +174,9 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask iterm2`},
 		},
 		{
-			ID:       "iterm2-setup",
-			Category: "Workflow Apps",
-			Name:     "Configure iTerm2",
+			ID:          "iterm2-setup",
+			Category:    "Workflow Apps",
+			Name:        "Configure iTerm2",
 			Description: "Set iTerm2 appearance preferences.",
 			ManualInstructions: "Open iTerm2 → Preferences:\n" +
 				"  • Appearance → Theme: Minimal\n" +
@@ -187,9 +199,9 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask rectangle`},
 		},
 		{
-			ID:       "rectangle-setup",
-			Category: "Workflow Apps",
-			Name:     "Configure Rectangle",
+			ID:          "rectangle-setup",
+			Category:    "Workflow Apps",
+			Name:        "Configure Rectangle",
 			Description: "Grant permissions and enable launch at login.",
 			ManualInstructions: "Open Rectangle:\n" +
 				"  • Grant Accessibility permission when prompted\n" +
@@ -203,20 +215,20 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask itsycal`},
 		},
 		{
-			ID:       "itsycal-setup",
-			Category: "Workflow Apps",
-			Name:     "Configure Itsycal",
+			ID:          "itsycal-setup",
+			Category:    "Workflow Apps",
+			Name:        "Configure Itsycal",
 			Description: "Set itsycal preferences.",
 			ManualInstructions: "Open Itsycal:\n" +
 				"  • Enable 'Launch at Login'\n" +
 				"  • Highlight M, T, Th in the weekly view",
 		},
 		{
-			ID:       "things-install",
-			Category: "Workflow Apps",
-			Name:     "Install Things 3",
-			Description: "Task manager from the Mac App Store.",
-			ManualInstructions: "Open the Mac App Store and install Things 3.",
+			ID:          "things-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Things 3",
+			Description: "Task manager from the Mac App Store (requires mas + being signed in to the App Store).",
+			Commands:    []string{`mas install 904280696`},
 		},
 
 		// ── Finder Settings ────────────────────────────────────────────
@@ -300,11 +312,11 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install ffmpeg`},
 		},
 		{
-			ID:          "youtube-dl-install",
+			ID:          "yt-dlp-install",
 			Category:    "Media Apps",
-			Name:        "Install youtube-dl",
-			Description: "Download videos from YouTube and other sites.",
-			Commands:    []string{`brew install youtube-dl`},
+			Name:        "Install yt-dlp",
+			Description: "Download videos from YouTube and other sites (maintained youtube-dl fork).",
+			Commands:    []string{`brew install yt-dlp`},
 		},
 		{
 			ID:          "flux-install",
@@ -342,18 +354,17 @@ func AllSteps() []Step {
 			ID:          "brew-formulae",
 			Category:    "Development",
 			Name:        "Install CLI tools (brew formulae)",
-			Description: "fzf, ripgrep, jq, neovim, tmux, tree, httpie, tldr, mosh, pnpm, gron, just, llm, mcfly, slides, wifi-password.",
+			Description: "gh, fzf, ripgrep, jq, neovim, tmux, tree, httpie, tldr, mosh, pnpm, gron, just, llm, mcfly, slides, wifi-password.",
 			Commands: []string{
-				`brew install fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password`,
+				`brew install gh fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password`,
 			},
-
 		},
 
 		// ── Keyboard ───────────────────────────────────────────────────
 		{
-			ID:       "hyperkey-install",
-			Category: "Keyboard",
-			Name:     "Install Hyperkey",
+			ID:          "hyperkey-install",
+			Category:    "Keyboard",
+			Name:        "Install Hyperkey",
 			Description: "Remap Caps Lock to Hyper key (Ctrl+Shift+Cmd+Opt), quick press = Escape.",
 			ManualInstructions: "1. Download and install from https://hyperkey.app/\n" +
 				"2. Map Caps Lock → Hyper Key\n" +
@@ -362,9 +373,9 @@ func AllSteps() []Step {
 
 		// ── Chrome Extensions ──────────────────────────────────────────
 		{
-			ID:       "chrome-extensions",
-			Category: "Chrome Extensions",
-			Name:     "Install Chrome extensions",
+			ID:          "chrome-extensions",
+			Category:    "Chrome Extensions",
+			Name:        "Install Chrome extensions",
 			Description: "Manually install recommended Chrome extensions.",
 			ManualInstructions: "Install these Chrome extensions:\n\n" +
 				"  • uBlock Origin — https://github.com/gorhill/uBlock#installation\n" +
@@ -376,9 +387,9 @@ func AllSteps() []Step {
 				"  • Also: Cold Turkey Blocker, Loom, OneTab, Readwise Highlighter, React DevTools",
 		},
 		{
-			ID:       "chrome-flags",
-			Category: "Chrome Extensions",
-			Name:     "Configure Chrome flags & settings",
+			ID:          "chrome-flags",
+			Category:    "Chrome Extensions",
+			Name:        "Configure Chrome flags & settings",
 			Description: "Disable hardware media key handling so Spotify isn't interrupted by YouTube.",
 			ManualInstructions: "1. Open chrome://flags/#hardware-media-key-handling → Disable\n" +
 				"2. To prevent Cmd+Shift+I opening Mail instead of DevTools:\n" +
@@ -418,4 +429,3 @@ func Categories() []string {
 	}
 	return cats
 }
-
