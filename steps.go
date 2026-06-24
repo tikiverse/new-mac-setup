@@ -507,6 +507,13 @@ func AllSteps() []Step {
 			Commands:    []string{`printf 'x%.0s' $(seq 1 300); echo`},
 		},
 		{
+			ID:          "test-no-newline",
+			Category:    "Testing",
+			Name:        "Partial line, no trailing newline",
+			Description: "Prints text with no final newline (tests flushing the last buffer at EOF).",
+			Commands:    []string{`printf 'no trailing newline here'`},
+		},
+		{
 			ID:          "test-no-output",
 			Category:    "Testing",
 			Name:        "No output, succeeds",
