@@ -1,0 +1,45 @@
+# goreleaser config — builds macOS binaries and publishes a GitHub Release on tag push.
+# Docs: https://goreleaser.com
+version: 2
+
+project_name: mac-setup
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: mac-setup
+    main: .
+    binary: mac-setup
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  draft: false
+  prerelease: auto
