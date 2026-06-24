@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -451,6 +452,45 @@ func TestRunReoffersFailedAndSkipped(t *testing.T) {
 		t.Fatal("previously skipped step should be re-offered")
 	}
 	t.Logf("PASS: failed/skipped steps re-offered, completed skipped")
+}
+
+func TestCategoryProgressFraction(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+
+	firstCat := m.categories[0]
+	var steps []Step
+	for _, s := range AllSteps() {
+		if s.Category == firstCat {
+			steps = append(steps, s)
+		}
+	}
+	if len(steps) < 4 {
+		t.Fatalf("need >=4 steps in %q for this test", firstCat)
+	}
+	total := len(steps)
+
+	// 2 completed, 1 skipped, the rest pending: done over (total − skipped).
+	m.state.Steps[steps[0].ID] = StatusCompleted
+	m.state.Steps[steps[1].ID] = StatusCompleted
+	m.state.Steps[steps[2].ID] = StatusSkipped
+
+	out := m.viewCategories()
+	want := fmt.Sprintf("%d/%d + 1 skip", 2, total-1)
+	if !contains(out, want) {
+		t.Fatalf("expected category line to show %q, got:\n%s", want, out)
+	}
+
+	// Everything resolved (all completed, one skipped) → shows "done".
+	for _, s := range steps {
+		m.state.Steps[s.ID] = StatusCompleted
+	}
+	m.state.Steps[steps[0].ID] = StatusSkipped
+	out = m.viewCategories()
+	wantDone := fmt.Sprintf("%d/%d + 1 skip) done", total-1, total-1)
+	if !contains(out, wantDone) {
+		t.Fatalf("expected complete category to show %q, got:\n%s", wantDone, out)
+	}
 }
 
 func contains(s, substr string) bool {
