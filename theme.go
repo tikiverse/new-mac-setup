@@ -75,8 +75,8 @@ func statusStyle(s StepStatus) lipgloss.Style {
 	case StatusFailed:
 		return styleError
 	case StatusSkipped:
+		return styleSkipped
+	default: // not run
 		return styleWarning
-	default:
-		return styleDim
 	}
 }
