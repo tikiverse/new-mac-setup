@@ -407,6 +407,112 @@ func AllSteps() []Step {
 			Description: "Advanced audio control for Mac.",
 			Commands:    []string{`brew install --cask soundsource`},
 		},
+
+		// ── Testing ────────────────────────────────────────────────────
+		// No-op steps with no side effects, used to exercise the run UI:
+		// streaming, delays, progress bars, ANSI, failures, and so on.
+		{
+			ID:          "test-quick",
+			Category:    "Testing",
+			Name:        "Quick success",
+			Description: "Prints two lines and exits 0. Baseline happy path.",
+			Commands:    []string{`echo "starting…"; echo "done."`},
+		},
+		{
+			ID:          "test-stream",
+			Category:    "Testing",
+			Name:        "Streaming output (drip)",
+			Description: "Emits 10 lines, one every 0.3s, so you can watch them stream in.",
+			Commands:    []string{`for i in $(seq 1 10); do echo "line $i of 10"; sleep 0.3; done`},
+		},
+		{
+			ID:          "test-slow-start",
+			Category:    "Testing",
+			Name:        "Sleep 3s before output",
+			Description: "Prints a line, sleeps 3s, then prints again (tests the waiting state).",
+			Commands:    []string{`echo "working…"; sleep 3; echo "finished after 3s"`},
+		},
+		{
+			ID:          "test-progress",
+			Category:    "Testing",
+			Name:        "Animated progress bar",
+			Description: "A \\r-updated progress bar (tests carriage-return overwrite handling).",
+			Commands:    []string{`for i in $(seq 1 20); do printf "\r[%-20s] %d%%" "$(printf '#%.0s' $(seq 1 $i))" $((i*5)); sleep 0.1; done; echo`},
+		},
+		{
+			ID:          "test-spinner",
+			Category:    "Testing",
+			Name:        "Spinner animation",
+			Description: "A \\r-updated spinner (more carriage-return overwrite testing).",
+			Commands:    []string{`for n in $(seq 1 20); do for c in '|' '/' '-' '\'; do printf "\rworking %s" "$c"; sleep 0.08; done; done; printf "\rdone   \n"`},
+		},
+		{
+			ID:          "test-colors",
+			Category:    "Testing",
+			Name:        "ANSI color output",
+			Description: "Prints colored/bold text (tests ANSI stripping in the viewport).",
+			Commands:    []string{`printf '\033[31mred\033[0m \033[32mgreen\033[0m \033[33myellow\033[0m \033[1mbold\033[0m\n'`},
+		},
+		{
+			ID:          "test-stderr",
+			Category:    "Testing",
+			Name:        "Interleaved stdout + stderr",
+			Description: "Writes to both streams (tests that they merge in order).",
+			Commands:    []string{`echo "to stdout"; echo "to stderr" 1>&2; echo "more stdout"`},
+		},
+		{
+			ID:          "test-burst",
+			Category:    "Testing",
+			Name:        "Burst of fast output",
+			Description: "Prints 200 lines as fast as possible (tests throughput and scrollback).",
+			Commands:    []string{`for i in $(seq 1 200); do echo "burst line $i"; done`},
+		},
+		{
+			ID:          "test-multi",
+			Category:    "Testing",
+			Name:        "Multiple commands",
+			Description: "Three commands in sequence (tests the per-command $ headers).",
+			Commands: []string{
+				`echo "first command"`,
+				`echo "second command"; sleep 1`,
+				`echo "third command"`,
+			},
+		},
+		{
+			ID:          "test-interactive",
+			Category:    "Testing",
+			Name:        "Interactive prompt (needs stdin)",
+			Description: "Runs `read` for a y/N answer — shows what happens with no TTY stdin.",
+			Commands:    []string{`read -p "Continue? [y/N] " ans; echo "you answered: ${ans:-<no input>}"`},
+		},
+		{
+			ID:          "test-fail",
+			Category:    "Testing",
+			Name:        "Always fails",
+			Description: "Prints a line then exits 1 (tests the failure pause / retry / skip / abort).",
+			Commands:    []string{`echo "about to fail…"; exit 1`},
+		},
+		{
+			ID:          "test-fail-midway",
+			Category:    "Testing",
+			Name:        "Output then fail",
+			Description: "Emits several lines, then fails (tests output capture on failure).",
+			Commands:    []string{`echo "step 1 ok"; echo "step 2 ok"; echo "step 3 failing" 1>&2; exit 2`},
+		},
+		{
+			ID:          "test-long-line",
+			Category:    "Testing",
+			Name:        "Very long single line",
+			Description: "Prints a 300-char line (tests how the viewport wraps wide output).",
+			Commands:    []string{`printf 'x%.0s' $(seq 1 300); echo`},
+		},
+		{
+			ID:          "test-no-output",
+			Category:    "Testing",
+			Name:        "No output, succeeds",
+			Description: "Runs `true` with no output (edge case: empty viewport then done).",
+			Commands:    []string{`true`},
+		},
 	}
 }
 
