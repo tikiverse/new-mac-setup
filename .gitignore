@@ -19,6 +19,9 @@ go.work.sum
 # Dependency directories
 vendor/
 
+# GoReleaser build output
+dist/
+
 # IDE
 .idea/
 .vscode/
