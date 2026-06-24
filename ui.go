@@ -440,20 +440,23 @@ func (m model) allStepsSelectedInCat() bool {
 	return true
 }
 
-// isCategoryDone returns true if all selected steps in the category are completed/skipped.
+// isCategoryDone reports whether every step in the category is resolved —
+// completed or deliberately skipped, with nothing left pending or failed.
 func (m model) isCategoryDone(cat string) bool {
-	hasSelected := false
+	any := false
 	for _, s := range AllSteps() {
-		if s.Category == cat && m.stepSelected[s.ID] {
-			hasSelected = true
-			// A skipped or failed step leaves the category incomplete so it
-			// keeps showing as pending and is re-offered on the next run.
-			if m.state.Steps[s.ID] != StatusCompleted {
-				return false
-			}
+		if s.Category != cat {
+			continue
+		}
+		any = true
+		switch m.state.Steps[s.ID] {
+		case StatusCompleted, StatusSkipped:
+			// resolved
+		default:
+			return false
 		}
 	}
-	return hasSelected
+	return any
 }
 
 // ── View ───────────────────────────────────────────────────────────────────
@@ -485,27 +488,35 @@ func (m model) viewCategories() string {
 			cursor = styleTitle.Render("▸ ")
 		}
 
-		total := 0
-		selected := 0
+		// Progress is "done / (total − skipped)", with skipped steps set aside
+		// and surfaced separately so they don't count against the category.
+		total, doneCount, skipped := 0, 0, 0
 		for _, s := range AllSteps() {
-			if s.Category == cat {
-				total++
-				if m.stepSelected[s.ID] {
-					selected++
-				}
+			if s.Category != cat {
+				continue
+			}
+			total++
+			switch m.state.Steps[s.ID] {
+			case StatusCompleted:
+				doneCount++
+			case StatusSkipped:
+				skipped++
 			}
 		}
 
-		done := m.isCategoryDone(cat)
+		frac := fmt.Sprintf("%d/%d", doneCount, total-skipped)
+		if skipped > 0 {
+			frac += fmt.Sprintf(" + %d skip", skipped)
+		}
 
 		var icon string
 		var label string
-		if done {
+		if m.isCategoryDone(cat) {
 			icon = styleSuccess.Render("✓")
-			label = styleSuccess.Render(fmt.Sprintf("%s (%d/%d) done", cat, selected, total))
+			label = styleSuccess.Render(fmt.Sprintf("%s (%s) done", cat, frac))
 		} else {
 			icon = styleDim.Render("·")
-			label = styleUnselected.Render(fmt.Sprintf("%s (%d/%d)", cat, selected, total))
+			label = styleUnselected.Render(fmt.Sprintf("%s (%s)", cat, frac))
 		}
 
 		b.WriteString(fmt.Sprintf("  %s%s %s\n", cursor, icon, label))
