@@ -12,14 +12,15 @@ const usage = `mac-setup — a-la-carte Mac setup
 Usage:
   mac-setup                      Launch the interactive TUI
   mac-setup --dry-run            Launch the TUI in dry-run mode
-  mac-setup <step-id>            Run a single step directly in this terminal
+  mac-setup <step-id>            Show the step's metadata and command(s)
+  mac-setup <step-id> --run      Run the step directly in this terminal
   mac-setup <step-id> --done     Mark the step as done (no run)
   mac-setup <step-id> --undone   Mark the step as not done
   mac-setup <step-id> --copy     Copy the step's command(s) to the clipboard
-  mac-setup <step-id> --dry-run  Print the step's command(s) without running
 
 Flags:
-  -n, --dry-run   Print commands instead of executing them
+  --run           Execute the step (with --dry-run, print without running)
+  -n, --dry-run   With --run, print commands instead of executing them
   -h, --help      Show this help
 
 Step ids are shown next to each step in the TUI.
@@ -28,7 +29,8 @@ Step ids are shown next to each step in the TUI.
 type cliAction int
 
 const (
-	actionRun cliAction = iota
+	actionShow cliAction = iota // default: print metadata + command, no execution
+	actionRun
 	actionDone
 	actionUndone
 	actionCopy
@@ -47,7 +49,7 @@ func parseArgs(args []string) (cliOptions, error) {
 	actionSet := false
 	setAction := func(a cliAction) error {
 		if actionSet {
-			return fmt.Errorf("only one of --done, --undone, --copy may be given")
+			return fmt.Errorf("only one of --run, --done, --undone, --copy may be given")
 		}
 		o.action = a
 		actionSet = true
@@ -56,6 +58,10 @@ func parseArgs(args []string) (cliOptions, error) {
 
 	for _, a := range args {
 		switch a {
+		case "--run":
+			if err := setAction(actionRun); err != nil {
+				return o, err
+			}
 		case "--done":
 			if err := setAction(actionDone); err != nil {
 				return o, err
@@ -96,6 +102,9 @@ func runDirect(opts cliOptions) int {
 	state := LoadState()
 
 	switch opts.action {
+	case actionShow:
+		return showStep(step, state)
+
 	case actionCopy:
 		payload := clipboardPayload(step)
 		if err := copyToClipboard(payload); err != nil {
@@ -148,6 +157,48 @@ func runDirect(opts cliOptions) int {
 	}
 	fmt.Printf("\n✓ %s done.\n", step.ID)
 	return 0
+}
+
+// showStep prints a step's metadata and command(s) without executing anything.
+func showStep(step Step, state *AppState) int {
+	fmt.Println(step.ID)
+	fmt.Printf("  Name:        %s\n", step.Name)
+	fmt.Printf("  Category:    %s\n", step.Category)
+	if step.Description != "" {
+		fmt.Printf("  Description: %s\n", step.Description)
+	}
+	fmt.Printf("  Status:      %s\n", statusLabel(state.Steps[step.ID]))
+	if step.RequiresAdmin {
+		fmt.Printf("  Requires:    admin (sudo)\n")
+	}
+	if step.IsManual() {
+		fmt.Println("  Manual step — instructions:")
+		for _, line := range strings.Split(step.ManualInstructions, "\n") {
+			fmt.Printf("    %s\n", line)
+		}
+		fmt.Printf("\nMark it done with: mac-setup %s --done\n", step.ID)
+	} else {
+		fmt.Println("  Command(s):")
+		for _, cmd := range step.Commands {
+			fmt.Printf("    %s\n", cmd)
+		}
+		fmt.Printf("\nRun it with: mac-setup %s --run\n", step.ID)
+	}
+	return 0
+}
+
+// statusLabel renders a persisted step status for display.
+func statusLabel(s StepStatus) string {
+	switch s {
+	case StatusCompleted:
+		return "completed"
+	case StatusFailed:
+		return "failed"
+	case StatusSkipped:
+		return "skipped"
+	default:
+		return "not run"
+	}
 }
 
 // runStepDirect runs a step's commands with the terminal's real stdin/stdout/

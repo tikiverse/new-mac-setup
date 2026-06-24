@@ -17,23 +17,24 @@ System prefs, Homebrew, browsers, dev tools (Node, Docker, CLI utilities), Finde
 go run .               # run directly from source
 ```
 
-### Running a single step from the CLI
+### Acting on a single step from the CLI
 
 Every step has an **id** (shown next to it in the TUI). Pass an id to act on
-just that step directly in your terminal — handy for one-offs, and because the
-command runs with the real terminal, interactive prompts (`sudo`, installers)
-and live output work natively:
+just that step:
 
 ```
-./mac-setup finder-path-bar            # run just this step in the terminal
-./mac-setup finder-path-bar --dry-run  # print its command(s) without running
+./mac-setup finder-path-bar            # show its metadata and command(s)
+./mac-setup finder-path-bar --run      # run it directly in the terminal
 ./mac-setup finder-path-bar --done     # mark as done (no run)
 ./mac-setup finder-path-bar --undone   # mark as not done
 ./mac-setup finder-path-bar --copy     # copy its command(s) to the clipboard
 ```
 
-A direct run marks the step done on success (or failed on error); manual,
-instruction-only steps are printed rather than executed.
+With no flag, an id just **shows** the step — no execution, no state change.
+`--run` executes it directly in your terminal, so interactive prompts (`sudo`,
+installers) and live output work natively; it records the step done on success
+(or failed on error). Manual, instruction-only steps are printed rather than
+executed.
 
 ## Controls
 

@@ -10,13 +10,14 @@ func TestParseArgs(t *testing.T) {
 		errish bool
 	}{
 		{"empty", nil, cliOptions{}, false},
-		{"id only", []string{"finder-path-bar"}, cliOptions{stepID: "finder-path-bar", action: actionRun}, false},
+		{"id only is show", []string{"finder-path-bar"}, cliOptions{stepID: "finder-path-bar", action: actionShow}, false},
+		{"id then run", []string{"finder-path-bar", "--run"}, cliOptions{stepID: "finder-path-bar", action: actionRun}, false},
 		{"id then done", []string{"finder-path-bar", "--done"}, cliOptions{stepID: "finder-path-bar", action: actionDone}, false},
 		{"flag then id", []string{"--copy", "finder-path-bar"}, cliOptions{stepID: "finder-path-bar", action: actionCopy}, false},
 		{"undone", []string{"x", "--undone"}, cliOptions{stepID: "x", action: actionUndone}, false},
-		{"dry-run shorthand", []string{"x", "-n"}, cliOptions{stepID: "x", action: actionRun, dryRun: true}, false},
+		{"run dry-run shorthand", []string{"x", "--run", "-n"}, cliOptions{stepID: "x", action: actionRun, dryRun: true}, false},
 		{"help", []string{"--help"}, cliOptions{help: true}, false},
-		{"conflicting actions", []string{"x", "--done", "--copy"}, cliOptions{}, true},
+		{"conflicting actions", []string{"x", "--run", "--copy"}, cliOptions{}, true},
 		{"unknown flag", []string{"x", "--nope"}, cliOptions{}, true},
 		{"two ids", []string{"a", "b"}, cliOptions{}, true},
 	}
@@ -82,6 +83,17 @@ func TestRunDirectUnknownID(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	if code := runDirect(cliOptions{stepID: "nope", action: actionDone}); code != 1 {
 		t.Fatalf("expected exit 1 for unknown id, got %d", code)
+	}
+}
+
+func TestRunDirectShowDoesNotExecuteOrMark(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	const id = "finder-path-bar"
+	if code := runDirect(cliOptions{stepID: id, action: actionShow}); code != 0 {
+		t.Fatalf("show returned %d", code)
+	}
+	if s := LoadState(); s.Steps[id] != "" {
+		t.Fatalf("show must not change state, got %q", s.Steps[id])
 	}
 }
 
