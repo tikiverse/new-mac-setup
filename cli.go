@@ -192,18 +192,18 @@ func showStep(step Step, state *AppState) int {
 	if !manual {
 		fmt.Printf("  mac-setup %s %s     run it directly in this terminal\n", step.ID, styleWarning.Render("--run"))
 	}
-	fmt.Printf("  mac-setup %s %s    mark it done (no run)\n", step.ID, styleWarning.Render("--done"))
-	fmt.Printf("  mac-setup %s %s   mark it not done (clear its status)\n", step.ID, styleWarning.Render("--reset"))
-	fmt.Printf("  mac-setup %s %s    copy %s to the clipboard\n", step.ID, styleWarning.Render("--copy"), copyTarget(step))
+	fmt.Printf("  mac-setup %s %s    only mark it done (no run)\n", step.ID, styleWarning.Render("--done"))
+	fmt.Printf("  mac-setup %s %s   only mark it not done\n", step.ID, styleWarning.Render("--reset"))
+	fmt.Printf("  mac-setup %s %s    only copy %s to clipboard\n", step.ID, styleWarning.Render("--copy"), copyTarget(step))
 	return 0
 }
 
 // copyTarget describes what --copy puts on the clipboard for a step.
 func copyTarget(step Step) string {
 	if step.IsManual() {
-		return "its instructions"
+		return "instructions"
 	}
-	return "its command(s)"
+	return "command(s)"
 }
 
 // statusLabel renders a persisted step status for display.
