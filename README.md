@@ -32,6 +32,7 @@ System prefs, Homebrew, browsers, dev tools (Node, Docker, CLI utilities), Finde
 ./mac-setup            # interactive setup
 ./mac-setup --dry-run  # dry-run (prints commands, doesn't execute)
 ./mac-setup -n         # same, shorthand
+./mac-setup --debug    # also show the Testing category (no-op steps for trying the run UI)
 go run .               # run directly from source
 ```
 
@@ -67,6 +68,8 @@ executed.
 | `L` | Launch just the highlighted step, to completion |
 | `R` | Reset step state |
 | `q` | Quit (progress saved) |
+
+While a step runs, its command output streams live into a scrollable pane (ANSI codes and progress bars are cleaned up). Scroll it with `↑/↓` or `PgUp/PgDn`.
 
 When a step fails mid-run, the run pauses and shows the captured output so you can decide what to do:
 

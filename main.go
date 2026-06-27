@@ -20,7 +20,7 @@ func main() {
 	}
 	if opts.stepID == "" {
 		// No step id given: launch the interactive TUI.
-		runTUI(opts.dryRun)
+		runTUI(opts.dryRun, opts.debug)
 		return
 	}
 	// A step id was given: run that single step directly in this terminal.
@@ -28,10 +28,14 @@ func main() {
 }
 
 // runTUI launches the full-screen interactive setup.
-func runTUI(dryRun bool) {
+func runTUI(dryRun, debug bool) {
 	state := LoadState()
 	m := newModel(state)
 	m.dryRun = dryRun
+	if debug {
+		m.debug = true
+		m.categories = visibleCategories(true)
+	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
