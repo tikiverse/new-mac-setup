@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -616,6 +617,28 @@ func TestShiftRightLaunchesSingleStep(t *testing.T) {
 	}
 	if len(m.runSteps) != 1 || m.runSteps[0].ID != step.ID {
 		t.Fatalf("shift+right should run exactly the cursor step, got %d steps", len(m.runSteps))
+	}
+}
+
+func TestRunDoneKeepsStreamOutputVisible(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.screen = screenCategoryRun
+	m.runCategory = "Workflow Apps"
+	m.runLines = []string{"$ brew install --cask fantastical", "==> Downloading...", "==> Success"}
+	m.runViewport.Width = 80
+	m.runViewport.Height = 10
+	m.runViewport.SetContent(strings.Join(m.runLines, "\n"))
+	m.runViewport.GotoBottom()
+	m.runLog = []runLogEntry{{name: "Install Fantastical", status: "ok"}}
+	m.runDone = true
+
+	out := m.viewCategoryRun()
+	if !contains(out, "==> Success") {
+		t.Fatalf("expected done view to keep streamed output visible, got:\n%s", out)
+	}
+	if !contains(out, "Done — 1 steps completed") {
+		t.Fatalf("expected done summary below streamed output, got:\n%s", out)
 	}
 }
 

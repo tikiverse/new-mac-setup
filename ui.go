@@ -815,6 +815,10 @@ func (m model) viewCategoryRun() string {
 	} else if m.runDone {
 		b.WriteString("\n")
 
+		if len(m.runLines) > 0 {
+			b.WriteString(m.runViewport.View() + "\n\n")
+		}
+
 		// Count results
 		okCount, failCount, skipCount := 0, 0, 0
 		for _, e := range m.runLog {

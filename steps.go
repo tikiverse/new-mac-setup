@@ -471,6 +471,20 @@ func AllSteps() []Step {
 			Commands:    []string{`for i in $(seq 1 200); do echo "burst line $i"; done`},
 		},
 		{
+			ID:          "test-200-lines-success",
+			Category:    "Testing",
+			Name:        "200 lines, then succeed",
+			Description: "Prints 200 numbered lines, then exits successfully (tests long streamed output with vertical overflow and a clean done state).",
+			Commands:    []string{`for i in $(seq 1 200); do echo "stream line $i of 200"; done`},
+		},
+		{
+			ID:          "test-200-lines-fail",
+			Category:    "Testing",
+			Name:        "200 lines, then fail",
+			Description: "Prints 200 numbered lines, then exits 1 (tests long streamed output preserved on failure after vertical overflow).",
+			Commands:    []string{`for i in $(seq 1 200); do echo "stream line $i of 200"; done; echo "failing after 200 lines" 1>&2; exit 1`},
+		},
+		{
 			ID:          "test-multi",
 			Category:    "Testing",
 			Name:        "Multiple commands",
