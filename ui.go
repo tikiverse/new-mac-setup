@@ -165,6 +165,14 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
+	// Left/Right arrows mirror Enter/Esc respectively.
+	switch key {
+	case "left":
+		key = "enter"
+	case "right":
+		key = "esc"
+	}
+
 	switch m.screen {
 	case screenCategories:
 		if m.confirmReset {
