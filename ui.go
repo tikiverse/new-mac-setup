@@ -62,17 +62,18 @@ type model struct {
 	confirmReset bool
 
 	// Category run state
-	runCategory   string         // category currently being run
-	runSteps      []Step         // steps to run in this category
-	runLog        []runLogEntry  // log of completed steps
-	runIndex      int            // index of currently running step
-	runWaitManual bool           // waiting for Enter on a manual step
-	runManualStep *Step          // the manual step we're waiting on
-	runWaitFail   bool           // paused on a failed step, awaiting retry/skip/abort
-	runFailStep   *Step          // the step that failed
-	runFailOutput string         // captured output of the failed step
-	runFailCounts map[string]int // per-step failure count within the current run
-	runDone       bool           // all steps finished
+	runCategory     string         // category currently being run
+	runSteps        []Step         // steps to run in this category
+	runLog          []runLogEntry  // log of completed steps
+	runIndex        int            // index of currently running step
+	runWaitManual   bool           // waiting for Enter on a manual step
+	runManualStep   *Step          // the manual step we're waiting on
+	runWaitFail     bool           // paused on a failed step, awaiting retry/skip/abort
+	runFailStep     *Step          // the step that failed
+	runFailOutput   string         // captured output of the failed step
+	runFailCounts   map[string]int // per-step failure count within the current run
+	runDone         bool           // all steps finished
+	runReturnScreen screen         // screen to return to when the run finishes
 
 	// Mode
 	dryRun bool
@@ -264,6 +265,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "G":
 			m.screen = screenCategories
 			return m.startCategoryRun()
+		case "L":
+			// Launch just the step under the cursor, run to completion.
+			if m.stepSelectCursor > 0 {
+				return m.startSingleStepRun(m.stepSelectSteps[m.stepSelectCursor-1])
+			}
 		case "backspace", "esc":
 			m.screen = screenCategories
 		case "enter":
@@ -326,7 +332,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if m.runDone {
 			if key == "enter" || key == "esc" {
-				m.screen = screenCategories
+				m.screen = m.runReturnScreen
 				return m, nil
 			}
 			if key == "q" {
@@ -373,8 +379,26 @@ func (m model) startCategoryRun() (tea.Model, tea.Cmd) {
 	m.runWaitManual = false
 	m.runManualStep = nil
 	m.runFailCounts = make(map[string]int)
+	m.runReturnScreen = screenCategories
 
 	// Start running the first step
+	return m.runCurrentStep()
+}
+
+// startSingleStepRun runs a single step to completion, returning to the step
+// list when finished (used by the "L" launch shortcut).
+func (m model) startSingleStepRun(step Step) (tea.Model, tea.Cmd) {
+	m.screen = screenCategoryRun
+	m.runCategory = step.Category
+	m.runSteps = []Step{step}
+	m.runLog = nil
+	m.runIndex = 0
+	m.runDone = false
+	m.runWaitManual = false
+	m.runManualStep = nil
+	m.runFailCounts = make(map[string]int)
+	m.runReturnScreen = screenStepSelect
+
 	return m.runCurrentStep()
 }
 
@@ -624,11 +648,11 @@ func (m model) viewStepSelect() string {
 		b.WriteString(styleWarning.Render("  Reset all checkmarks for this category? [y] Yes  [n] No"))
 		b.WriteString("\n")
 	} else {
-		b.WriteString(help("  [G] Run category"))
+		b.WriteString(help("  [G] Run category  [L] Launch step"))
 		b.WriteString("\n")
-		b.WriteString(help("  [↑/k] Up  [↓/j] Down  [Space] Toggle"))
+		b.WriteString(help("  [↑/k] Up  [↓/j] Down  [Space/→] Toggle"))
 		b.WriteString("\n")
-		b.WriteString(help("  [Esc] Back  [R] Reset checkmarks"))
+		b.WriteString(help("  [Esc/←] Back  [R] Reset checkmarks"))
 		b.WriteString("\n")
 	}
 	return b.String()

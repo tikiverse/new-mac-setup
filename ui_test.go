@@ -568,6 +568,36 @@ func TestRightSelectsInsideCategory(t *testing.T) {
 	}
 }
 
+func TestLaunchSingleStep(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.dryRun = true
+	var tm tea.Model = m
+
+	// Enter the first category and move to its first step.
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	tm = sendKey(tm, "j")
+	m = tm.(model)
+	step := m.stepSelectSteps[0]
+
+	// Shift+L launches just that step.
+	tm = sendKey(tm, "L")
+	m = tm.(model)
+	if m.screen != screenCategoryRun {
+		t.Fatalf("L should start a run; screen=%d", m.screen)
+	}
+	if len(m.runSteps) != 1 || m.runSteps[0].ID != step.ID {
+		t.Fatalf("L should run exactly the cursor step, got %d steps", len(m.runSteps))
+	}
+
+	// When the run finishes, it returns to the step list (not categories).
+	tm, _ = tm.Update(categoryDoneMsg{})
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	if got := tm.(model).screen; got != screenStepSelect {
+		t.Fatalf("after a single-step launch, should return to the step list; screen=%d", got)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }
