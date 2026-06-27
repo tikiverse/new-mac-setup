@@ -596,6 +596,37 @@ func TestLaunchSingleStep(t *testing.T) {
 	}
 }
 
+func TestAdminStepUsesTerminalHandoff(t *testing.T) {
+	// The mas installs and Zoom need a sudo password, so they must be admin.
+	for _, id := range []string{"zoom-install", "things-install", "fantastical-install", "amphetamine-install"} {
+		s, ok := StepByID(id)
+		if !ok || !s.RequiresAdmin {
+			t.Fatalf("%s should exist and be RequiresAdmin", id)
+		}
+	}
+
+	step, _ := StepByID("zoom-install")
+	m := newModel(&AppState{Steps: make(map[string]StepStatus)})
+	m.runSteps = []Step{step}
+	m.runIndex = 0
+
+	// Real run: hands off to the terminal (a command), not the stream channel.
+	updated, cmd := m.runCurrentStep()
+	if cmd == nil {
+		t.Fatal("admin step should return a command (terminal handoff)")
+	}
+	if updated.(model).runStream != nil {
+		t.Fatal("admin step should not start the streaming channel")
+	}
+
+	// Dry-run: falls through to the streaming print path (never sudo).
+	m.dryRun = true
+	updated, _ = m.runCurrentStep()
+	if updated.(model).runStream == nil {
+		t.Fatal("dry-run admin step should use the streaming path, not handoff")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }

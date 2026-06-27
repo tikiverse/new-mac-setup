@@ -5,7 +5,18 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 )
+
+// interactiveCommand builds a single shell command that runs all of a step's
+// commands in sequence (&&-chained), for steps that need the real terminal —
+// e.g. those that prompt for a sudo password. It inherits the terminal's
+// stdin/stdout/stderr when run via tea.ExecProcess.
+func interactiveCommand(step Step) *exec.Cmd {
+	c := exec.Command("bash", "-c", strings.Join(step.Commands, " && "))
+	c.Env = append(c.Environ(), "HOMEBREW_NO_AUTO_UPDATE=1")
+	return c
+}
 
 // ansiRe matches the common ANSI escape sequences (CSI color/cursor and OSC)
 // so streamed command output renders as clean text in the TUI.

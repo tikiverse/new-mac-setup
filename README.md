@@ -71,6 +71,8 @@ executed.
 
 While a step runs, its command output streams live into a scrollable pane (ANSI codes and progress bars are cleaned up). Scroll it with `↑/↓` or `PgUp/PgDn`.
 
+Steps that need admin rights (Homebrew, `mas` App Store installs, Zoom) temporarily drop out of the full-screen UI and run directly in your terminal so `sudo` can prompt for your password, then the UI resumes.
+
 When a step fails mid-run, the run pauses and shows the captured output so you can decide what to do:
 
 | Key | Action |

@@ -454,6 +454,20 @@ func (m model) runCurrentStep() (tea.Model, tea.Cmd) {
 		return m, func() tea.Msg { return manualStepMsg{step: step} }
 	}
 
+	// Admin step: hand the terminal over (drop alt-screen) so sudo/installers
+	// can prompt for a password. This bypasses streaming — the command owns the
+	// terminal — then the TUI resumes. Dry-run falls through to the print path.
+	if step.RequiresAdmin && !m.dryRun {
+		s := step
+		return m, tea.ExecProcess(interactiveCommand(s), func(err error) tea.Msg {
+			out := ""
+			if err != nil {
+				out = "(this step ran in your terminal; output was not captured)"
+			}
+			return stepFinishedMsg{step: s, err: err, output: out}
+		})
+	}
+
 	// Automated step: stream commands into the viewport.
 	ch := make(chan tea.Msg, 256)
 	m.runStream = ch
