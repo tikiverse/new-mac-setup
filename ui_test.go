@@ -511,6 +511,93 @@ func TestArrowKeysMirrorEnterEsc(t *testing.T) {
 	}
 }
 
+func TestVimKeysMirrorEnterEsc(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	var tm tea.Model = m
+
+	// l behaves like Enter (vim right): drill into the first category.
+	tm = sendKey(tm, "l")
+	if got := tm.(model).screen; got != screenStepSelect {
+		t.Fatalf("l should act like Enter (enter category); screen=%d", got)
+	}
+
+	// h behaves like Esc (vim left): go back to the categories screen.
+	tm = sendKey(tm, "h")
+	if got := tm.(model).screen; got != screenCategories {
+		t.Fatalf("h should act like Esc (go back); screen=%d", got)
+	}
+}
+
+func TestRightSelectsInsideCategory(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	var tm tea.Model = m
+
+	// Enter the first category's step list, then move to the first step.
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	tm = sendKey(tm, "j")
+	m = tm.(model)
+	if m.screen != screenStepSelect {
+		t.Fatalf("expected step-select screen, got %d", m.screen)
+	}
+	step := m.stepSelectSteps[0]
+	before := m.stepSelected[step.ID]
+
+	// Right toggles the step (acts like Space) and stays in the list.
+	tm = sendSpecialKey(tm, tea.KeyRight)
+	m = tm.(model)
+	if m.screen != screenStepSelect {
+		t.Fatalf("Right inside a category should not navigate away; screen=%d", m.screen)
+	}
+	if m.stepSelected[step.ID] == before {
+		t.Fatal("Right should toggle the step selection inside a category")
+	}
+
+	// l (vim) toggles it back.
+	tm = sendKey(tm, "l")
+	m = tm.(model)
+	if m.stepSelected[step.ID] != before {
+		t.Fatal("l should also toggle the step selection")
+	}
+
+	// Left still goes back to the categories screen.
+	tm = sendSpecialKey(tm, tea.KeyLeft)
+	if got := tm.(model).screen; got != screenCategories {
+		t.Fatalf("Left should still go back; screen=%d", got)
+	}
+}
+
+func TestLaunchSingleStep(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.dryRun = true
+	var tm tea.Model = m
+
+	// Enter the first category and move to its first step.
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	tm = sendKey(tm, "j")
+	m = tm.(model)
+	step := m.stepSelectSteps[0]
+
+	// Shift+L launches just that step.
+	tm = sendKey(tm, "L")
+	m = tm.(model)
+	if m.screen != screenCategoryRun {
+		t.Fatalf("L should start a run; screen=%d", m.screen)
+	}
+	if len(m.runSteps) != 1 || m.runSteps[0].ID != step.ID {
+		t.Fatalf("L should run exactly the cursor step, got %d steps", len(m.runSteps))
+	}
+
+	// When the run finishes, it returns to the step list (not categories).
+	tm, _ = tm.Update(categoryDoneMsg{})
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	if got := tm.(model).screen; got != screenStepSelect {
+		t.Fatalf("after a single-step launch, should return to the step list; screen=%d", got)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }
