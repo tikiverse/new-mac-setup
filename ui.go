@@ -296,7 +296,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "G":
 			m.screen = screenCategories
 			return m.startCategoryRun()
-		case "L":
+		case "L", "shift+right":
 			// Launch just the step under the cursor, run to completion.
 			if m.stepSelectCursor > 0 {
 				return m.startSingleStepRun(m.stepSelectSteps[m.stepSelectCursor-1])

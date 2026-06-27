@@ -65,7 +65,7 @@ executed.
 | `Enter` | Enter a category (or return from the step list) |
 | `←`/`h` or `Esc`/`Backspace` | Back |
 | `G` | Run the category's selected steps |
-| `L` | Launch just the highlighted step, to completion |
+| `L` or `Shift+→` | Launch just the highlighted step, to completion |
 | `R` | Reset step state |
 | `q` | Quit (progress saved) |
 

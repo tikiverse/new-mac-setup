@@ -596,9 +596,32 @@ func TestLaunchSingleStep(t *testing.T) {
 	}
 }
 
+func TestShiftRightLaunchesSingleStep(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.dryRun = true
+	var tm tea.Model = m
+
+	// Enter the first category and move to its first step.
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	tm = sendKey(tm, "j")
+	m = tm.(model)
+	step := m.stepSelectSteps[0]
+
+	// Shift+Right should match the single-step launch shortcut.
+	tm, _ = tm.Update(tea.KeyMsg{Type: tea.KeyShiftRight})
+	m = tm.(model)
+	if m.screen != screenCategoryRun {
+		t.Fatalf("shift+right should start a run; screen=%d", m.screen)
+	}
+	if len(m.runSteps) != 1 || m.runSteps[0].ID != step.ID {
+		t.Fatalf("shift+right should run exactly the cursor step, got %d steps", len(m.runSteps))
+	}
+}
+
 func TestAdminStepUsesTerminalHandoff(t *testing.T) {
-	// The mas installs and Zoom need a sudo password, so they must be admin.
-	for _, id := range []string{"zoom-install", "things-install", "fantastical-install", "amphetamine-install"} {
+	// The App Store installs and Zoom need a sudo password, so they must be admin.
+	for _, id := range []string{"zoom-install", "things-install", "amphetamine-install"} {
 		s, ok := StepByID(id)
 		if !ok || !s.RequiresAdmin {
 			t.Fatalf("%s should exist and be RequiresAdmin", id)

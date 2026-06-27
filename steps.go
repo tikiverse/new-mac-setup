@@ -210,12 +210,11 @@ func AllSteps() []Step {
 				"  • Enable 'Launch at Login'",
 		},
 		{
-			ID:            "fantastical-install",
-			Category:      "Workflow Apps",
-			Name:          "Install Fantastical",
-			Description:   "Calendar app from the Mac App Store (mas install needs admin + App Store sign-in).",
-			Commands:      []string{`mas install 975937182`},
-			RequiresAdmin: true,
+			ID:          "fantastical-install",
+			Category:    "Workflow Apps",
+			Name:        "Install Fantastical",
+			Description: "Calendar app via Homebrew cask.",
+			Commands:    []string{`brew install --cask fantastical`},
 		},
 		{
 			ID:            "things-install",
