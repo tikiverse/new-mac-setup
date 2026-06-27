@@ -435,6 +435,8 @@ func (m model) startSingleStepRun(step Step) (tea.Model, tea.Cmd) {
 	m.runManualStep = nil
 	m.runFailCounts = make(map[string]int)
 	m.runReturnScreen = screenStepSelect
+	m.runLines = nil
+	m.runViewport.SetContent("")
 
 	return m.runCurrentStep()
 }
