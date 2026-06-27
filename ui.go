@@ -296,7 +296,7 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "G":
 			m.screen = screenCategories
 			return m.startCategoryRun()
-		case "L":
+		case "L", "shift+right":
 			// Launch just the step under the cursor, run to completion.
 			if m.stepSelectCursor > 0 {
 				return m.startSingleStepRun(m.stepSelectSteps[m.stepSelectCursor-1])
@@ -452,6 +452,20 @@ func (m model) runCurrentStep() (tea.Model, tea.Cmd) {
 	// Manual step: no commands, just instructions
 	if step.ManualInstructions != "" && len(step.Commands) == 0 {
 		return m, func() tea.Msg { return manualStepMsg{step: step} }
+	}
+
+	// Admin step: hand the terminal over (drop alt-screen) so sudo/installers
+	// can prompt for a password. This bypasses streaming — the command owns the
+	// terminal — then the TUI resumes. Dry-run falls through to the print path.
+	if step.RequiresAdmin && !m.dryRun {
+		s := step
+		return m, tea.ExecProcess(interactiveCommand(s), func(err error) tea.Msg {
+			out := ""
+			if err != nil {
+				out = "(this step ran in your terminal; output was not captured)"
+			}
+			return stepFinishedMsg{step: s, err: err, output: out}
+		})
 	}
 
 	// Automated step: stream commands into the viewport.
@@ -800,6 +814,10 @@ func (m model) viewCategoryRun() string {
 		b.WriteString("\n")
 	} else if m.runDone {
 		b.WriteString("\n")
+
+		if len(m.runLines) > 0 {
+			b.WriteString(m.runViewport.View() + "\n\n")
+		}
 
 		// Count results
 		okCount, failCount, skipCount := 0, 0, 0

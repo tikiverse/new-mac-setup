@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -593,6 +594,82 @@ func TestLaunchSingleStep(t *testing.T) {
 	tm = sendSpecialKey(tm, tea.KeyEnter)
 	if got := tm.(model).screen; got != screenStepSelect {
 		t.Fatalf("after a single-step launch, should return to the step list; screen=%d", got)
+	}
+}
+
+func TestShiftRightLaunchesSingleStep(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.dryRun = true
+	var tm tea.Model = m
+
+	// Enter the first category and move to its first step.
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	tm = sendKey(tm, "j")
+	m = tm.(model)
+	step := m.stepSelectSteps[0]
+
+	// Shift+Right should match the single-step launch shortcut.
+	tm, _ = tm.Update(tea.KeyMsg{Type: tea.KeyShiftRight})
+	m = tm.(model)
+	if m.screen != screenCategoryRun {
+		t.Fatalf("shift+right should start a run; screen=%d", m.screen)
+	}
+	if len(m.runSteps) != 1 || m.runSteps[0].ID != step.ID {
+		t.Fatalf("shift+right should run exactly the cursor step, got %d steps", len(m.runSteps))
+	}
+}
+
+func TestRunDoneKeepsStreamOutputVisible(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.screen = screenCategoryRun
+	m.runCategory = "Workflow Apps"
+	m.runLines = []string{"$ brew install --cask fantastical", "==> Downloading...", "==> Success"}
+	m.runViewport.Width = 80
+	m.runViewport.Height = 10
+	m.runViewport.SetContent(strings.Join(m.runLines, "\n"))
+	m.runViewport.GotoBottom()
+	m.runLog = []runLogEntry{{name: "Install Fantastical", status: "ok"}}
+	m.runDone = true
+
+	out := m.viewCategoryRun()
+	if !contains(out, "==> Success") {
+		t.Fatalf("expected done view to keep streamed output visible, got:\n%s", out)
+	}
+	if !contains(out, "Done — 1 steps completed") {
+		t.Fatalf("expected done summary below streamed output, got:\n%s", out)
+	}
+}
+
+func TestAdminStepUsesTerminalHandoff(t *testing.T) {
+	// The App Store installs and Zoom need a sudo password, so they must be admin.
+	for _, id := range []string{"zoom-install", "things-install", "amphetamine-install"} {
+		s, ok := StepByID(id)
+		if !ok || !s.RequiresAdmin {
+			t.Fatalf("%s should exist and be RequiresAdmin", id)
+		}
+	}
+
+	step, _ := StepByID("zoom-install")
+	m := newModel(&AppState{Steps: make(map[string]StepStatus)})
+	m.runSteps = []Step{step}
+	m.runIndex = 0
+
+	// Real run: hands off to the terminal (a command), not the stream channel.
+	updated, cmd := m.runCurrentStep()
+	if cmd == nil {
+		t.Fatal("admin step should return a command (terminal handoff)")
+	}
+	if updated.(model).runStream != nil {
+		t.Fatal("admin step should not start the streaming channel")
+	}
+
+	// Dry-run: falls through to the streaming print path (never sudo).
+	m.dryRun = true
+	updated, _ = m.runCurrentStep()
+	if updated.(model).runStream == nil {
+		t.Fatal("dry-run admin step should use the streaming path, not handoff")
 	}
 }
 

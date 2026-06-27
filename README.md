@@ -65,11 +65,13 @@ executed.
 | `Enter` | Enter a category (or return from the step list) |
 | `←`/`h` or `Esc`/`Backspace` | Back |
 | `G` | Run the category's selected steps |
-| `L` | Launch just the highlighted step, to completion |
+| `L` or `Shift+→` | Launch just the highlighted step, to completion |
 | `R` | Reset step state |
 | `q` | Quit (progress saved) |
 
 While a step runs, its command output streams live into a scrollable pane (ANSI codes and progress bars are cleaned up). Scroll it with `↑/↓` or `PgUp/PgDn`.
+
+Steps that need admin rights (Homebrew, `mas` App Store installs, Zoom) temporarily drop out of the full-screen UI and run directly in your terminal so `sudo` can prompt for your password, then the UI resumes.
 
 When a step fails mid-run, the run pauses and shows the captured output so you can decide what to do:
 
