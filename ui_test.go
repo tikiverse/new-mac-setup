@@ -529,6 +529,45 @@ func TestVimKeysMirrorEnterEsc(t *testing.T) {
 	}
 }
 
+func TestRightSelectsInsideCategory(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	var tm tea.Model = m
+
+	// Enter the first category's step list, then move to the first step.
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	tm = sendKey(tm, "j")
+	m = tm.(model)
+	if m.screen != screenStepSelect {
+		t.Fatalf("expected step-select screen, got %d", m.screen)
+	}
+	step := m.stepSelectSteps[0]
+	before := m.stepSelected[step.ID]
+
+	// Right toggles the step (acts like Space) and stays in the list.
+	tm = sendSpecialKey(tm, tea.KeyRight)
+	m = tm.(model)
+	if m.screen != screenStepSelect {
+		t.Fatalf("Right inside a category should not navigate away; screen=%d", m.screen)
+	}
+	if m.stepSelected[step.ID] == before {
+		t.Fatal("Right should toggle the step selection inside a category")
+	}
+
+	// l (vim) toggles it back.
+	tm = sendKey(tm, "l")
+	m = tm.(model)
+	if m.stepSelected[step.ID] != before {
+		t.Fatal("l should also toggle the step selection")
+	}
+
+	// Left still goes back to the categories screen.
+	tm = sendSpecialKey(tm, tea.KeyLeft)
+	if got := tm.(model).screen; got != screenCategories {
+		t.Fatalf("Left should still go back; screen=%d", got)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }

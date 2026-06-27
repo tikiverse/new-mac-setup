@@ -59,10 +59,11 @@ executed.
 | Key | Action |
 |-----|--------|
 | `↑/↓` or `j/k` | Navigate |
-| `Enter`/`Space` or `→`/`l` | Drill into category |
+| `→`/`l` | Enter a category · select (toggle) a step |
 | `Space` | Toggle step selection |
+| `Enter` | Enter a category (or return from the step list) |
+| `←`/`h` or `Esc`/`Backspace` | Back |
 | `G` | Start running selected steps |
-| `Backspace`/`Esc` or `←`/`h` | Back |
 | `R` | Reset step state |
 | `q` | Quit (progress saved) |
 

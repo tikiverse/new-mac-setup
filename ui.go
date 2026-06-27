@@ -165,12 +165,18 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	// Right/Left arrows (and vim h/l) mirror Enter/Esc respectively.
+	// Left/Right arrows (and vim h/l) mirror Esc/Enter. Inside the step list,
+	// Right/l selects (toggles) the step under the cursor instead, so Left = back
+	// and Right = select.
 	switch key {
-	case "right", "l":
-		key = "enter"
 	case "left", "h":
 		key = "esc"
+	case "right", "l":
+		if m.screen == screenStepSelect {
+			key = " "
+		} else {
+			key = "enter"
+		}
 	}
 
 	switch m.screen {
