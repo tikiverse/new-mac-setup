@@ -498,16 +498,16 @@ func TestArrowKeysMirrorEnterEsc(t *testing.T) {
 	m := newModel(state)
 	var tm tea.Model = m
 
-	// Left behaves like Enter: drill into the first category.
-	tm = sendSpecialKey(tm, tea.KeyLeft)
+	// Right behaves like Enter: drill into the first category.
+	tm = sendSpecialKey(tm, tea.KeyRight)
 	if got := tm.(model).screen; got != screenStepSelect {
-		t.Fatalf("Left should act like Enter (enter category); screen=%d", got)
+		t.Fatalf("Right should act like Enter (enter category); screen=%d", got)
 	}
 
-	// Right behaves like Esc: go back to the categories screen.
-	tm = sendSpecialKey(tm, tea.KeyRight)
+	// Left behaves like Esc: go back to the categories screen.
+	tm = sendSpecialKey(tm, tea.KeyLeft)
 	if got := tm.(model).screen; got != screenCategories {
-		t.Fatalf("Right should act like Esc (go back); screen=%d", got)
+		t.Fatalf("Left should act like Esc (go back); screen=%d", got)
 	}
 }
 
