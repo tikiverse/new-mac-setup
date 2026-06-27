@@ -493,6 +493,24 @@ func TestCategoryProgressFraction(t *testing.T) {
 	}
 }
 
+func TestArrowKeysMirrorEnterEsc(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	var tm tea.Model = m
+
+	// Right behaves like Enter: drill into the first category.
+	tm = sendSpecialKey(tm, tea.KeyRight)
+	if got := tm.(model).screen; got != screenStepSelect {
+		t.Fatalf("Right should act like Enter (enter category); screen=%d", got)
+	}
+
+	// Left behaves like Esc: go back to the categories screen.
+	tm = sendSpecialKey(tm, tea.KeyLeft)
+	if got := tm.(model).screen; got != screenCategories {
+		t.Fatalf("Left should act like Esc (go back); screen=%d", got)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }

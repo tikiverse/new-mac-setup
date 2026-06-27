@@ -4,6 +4,24 @@ Interactive TUI for bootstrapping a fresh Mac, a-la carte.
 
 Pick categories/steps from a menu card, only picking what you decide — progress is saved to `~/.mac-setup/state.json`.
 
+## Install
+
+On a new Mac, download the latest release binary (Apple Silicon or Intel is auto-detected):
+
+```bash
+ARCH=$([ "$(uname -m)" = "arm64" ] && echo arm64 || echo amd64)
+URL=$(curl -fsSL https://api.github.com/repos/tikiverse/new-mac-setup/releases/latest \
+  | grep -o "https://[^\"]*darwin_${ARCH}\.tar\.gz")
+curl -fsSL "$URL" | tar -xz
+./mac-setup
+```
+
+To put it on your `PATH`:
+
+```bash
+sudo mv mac-setup /usr/local/bin/
+```
+
 ## What it sets up
 
 System prefs, Homebrew, browsers, dev tools (Node, Docker, CLI utilities), Finder tweaks, window management, media apps, Chrome extensions, and more. See `steps.go` for the full list.
@@ -41,10 +59,10 @@ executed.
 | Key | Action |
 |-----|--------|
 | `↑/↓` or `j/k` | Navigate |
-| `Enter` or `Space` | Drill into category |
+| `Enter`/`Space` or `→` | Drill into category |
 | `Space` | Toggle step selection |
 | `G` | Start running selected steps |
-| `Backspace` or `Esc` | Back |
+| `Backspace`/`Esc` or `←` | Back |
 | `R` | Reset step state |
 | `q` | Quit (progress saved) |
 

@@ -185,11 +185,11 @@ func AllSteps() []Step {
 				"  • Set blue to #0dc8ff",
 		},
 		{
-			ID:          "caffeine-install",
+			ID:          "amphetamine-install",
 			Category:    "Workflow Apps",
-			Name:        "Install Caffeine",
-			Description: "Prevents Mac from sleeping.",
-			Commands:    []string{`brew install --cask caffeine`},
+			Name:        "Install Amphetamine",
+			Description: "Keep-awake utility from the Mac App Store (requires being signed in).",
+			Commands:    []string{`mas install 937984704`},
 		},
 		{
 			ID:          "rectangle-install",
@@ -208,20 +208,11 @@ func AllSteps() []Step {
 				"  • Enable 'Launch at Login'",
 		},
 		{
-			ID:          "itsycal-install",
+			ID:          "fantastical-install",
 			Category:    "Workflow Apps",
-			Name:        "Install Itsycal",
-			Description: "Tiny menu-bar calendar.",
-			Commands:    []string{`brew install --cask itsycal`},
-		},
-		{
-			ID:          "itsycal-setup",
-			Category:    "Workflow Apps",
-			Name:        "Configure Itsycal",
-			Description: "Set itsycal preferences.",
-			ManualInstructions: "Open Itsycal:\n" +
-				"  • Enable 'Launch at Login'\n" +
-				"  • Highlight M, T, Th in the weekly view",
+			Name:        "Install Fantastical",
+			Description: "Calendar app from the Mac App Store (requires being signed in).",
+			Commands:    []string{`mas install 975937182`},
 		},
 		{
 			ID:          "things-install",
@@ -326,11 +317,12 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask flux`},
 		},
 		{
-			ID:          "zoom-install",
-			Category:    "Media Apps",
-			Name:        "Install Zoom",
-			Description: "Video conferencing app.",
-			Commands:    []string{`brew install --cask zoom`},
+			ID:            "zoom-install",
+			Category:      "Media Apps",
+			Name:          "Install Zoom",
+			Description:   "Video conferencing app (cask uses a pkg installer, so it needs admin).",
+			Commands:      []string{`brew install --cask zoom`},
+			RequiresAdmin: true,
 		},
 
 		// ── Development ────────────────────────────────────────────────
@@ -365,10 +357,11 @@ func AllSteps() []Step {
 			ID:          "hyperkey-install",
 			Category:    "Keyboard",
 			Name:        "Install Hyperkey",
-			Description: "Remap Caps Lock to Hyper key (Ctrl+Shift+Cmd+Opt), quick press = Escape.",
+			Description: "Caps Lock → Left Control, quick press = Escape; Hyper key on F4.",
 			ManualInstructions: "1. Download and install from https://hyperkey.app/\n" +
-				"2. Map Caps Lock → Hyper Key\n" +
-				"3. Set quick press to Escape",
+				"2. Set the Hyper Key to F4\n" +
+				"3. Remap Caps Lock → Left Control\n" +
+				"4. Set Caps Lock quick press to Escape",
 		},
 
 		// ── Chrome Extensions ──────────────────────────────────────────
@@ -378,7 +371,7 @@ func AllSteps() []Step {
 			Name:        "Install Chrome extensions",
 			Description: "Manually install recommended Chrome extensions.",
 			ManualInstructions: "Install these Chrome extensions:\n\n" +
-				"  • uBlock Origin — https://github.com/gorhill/uBlock#installation\n" +
+				"  • uBlock Origin Lite — https://chromewebstore.google.com/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh\n" +
 				"  • Vimium — https://chromewebstore.google.com/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb\n" +
 				"  • Old Reddit Redirect — https://chrome.google.com/webstore/detail/old-reddit-redirect/dneaehbmnbhcippjikoajpoabadpodje\n" +
 				"  • Reddit Enhancement Suite — https://chrome.google.com/webstore/detail/reddit-enhancement-suite/kbmfpngjjgdllneeigpgjifpgocmfgmb\n" +
