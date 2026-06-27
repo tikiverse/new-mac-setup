@@ -165,11 +165,11 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	// Right/Left arrows mirror Enter/Esc respectively.
+	// Right/Left arrows (and vim h/l) mirror Enter/Esc respectively.
 	switch key {
-	case "right":
+	case "right", "l":
 		key = "enter"
-	case "left":
+	case "left", "h":
 		key = "esc"
 	}
 

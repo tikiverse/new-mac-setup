@@ -511,6 +511,24 @@ func TestArrowKeysMirrorEnterEsc(t *testing.T) {
 	}
 }
 
+func TestVimKeysMirrorEnterEsc(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	var tm tea.Model = m
+
+	// l behaves like Enter (vim right): drill into the first category.
+	tm = sendKey(tm, "l")
+	if got := tm.(model).screen; got != screenStepSelect {
+		t.Fatalf("l should act like Enter (enter category); screen=%d", got)
+	}
+
+	// h behaves like Esc (vim left): go back to the categories screen.
+	tm = sendKey(tm, "h")
+	if got := tm.(model).screen; got != screenCategories {
+		t.Fatalf("h should act like Esc (go back); screen=%d", got)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }
