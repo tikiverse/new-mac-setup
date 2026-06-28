@@ -233,6 +233,7 @@ func statusLabel(s StepStatus) string {
 // stderr, so interactive prompts (sudo, installers) and live output work
 // natively. Returns the first command's error, if any.
 func runStepDirect(step Step, dryRun bool) error {
+	fmt.Printf("\n==> %s (%s)\n\n", step.Name, step.ID)
 	for _, cmd := range step.Commands {
 		fmt.Printf("$ %s\n", cmd)
 		if dryRun {

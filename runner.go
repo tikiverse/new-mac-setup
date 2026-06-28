@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
@@ -12,10 +13,22 @@ import (
 // commands in sequence (&&-chained), for steps that need the real terminal —
 // e.g. those that prompt for a sudo password. It inherits the terminal's
 // stdin/stdout/stderr when run via tea.ExecProcess.
+//
+// Admin steps drop the TUI's alt-screen and hand the terminal over, so if a
+// macOS permission dialog interrupts the run, the TUI's "Running: ..." header
+// disappears along with it. A preamble line is printed first so the step is
+// still identifiable when the user returns to the terminal.
 func interactiveCommand(step Step) *exec.Cmd {
-	c := exec.Command("bash", "-c", strings.Join(step.Commands, " && "))
+	preamble := fmt.Sprintf("echo; echo %s; echo", shellQuote(fmt.Sprintf("==> %s (%s)", step.Name, step.ID)))
+	cmds := append([]string{preamble}, step.Commands...)
+	c := exec.Command("bash", "-c", strings.Join(cmds, " && "))
 	c.Env = append(c.Environ(), "HOMEBREW_NO_AUTO_UPDATE=1")
 	return c
+}
+
+// shellQuote single-quotes s for safe use inside a bash -c string.
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 // ansiRe matches the common ANSI escape sequences (CSI color/cursor and OSC)
