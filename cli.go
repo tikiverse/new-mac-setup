@@ -161,6 +161,9 @@ func runDirect(opts cliOptions) int {
 		return 1
 	}
 	fmt.Printf("\n✓ %s done.\n", step.ID)
+	if step.Note != "" {
+		fmt.Printf("\n%s %s\n", styleWarning.Render("Note:"), styleManual.Render(step.Note))
+	}
 	return 0
 }
 

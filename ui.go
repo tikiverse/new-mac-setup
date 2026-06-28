@@ -76,6 +76,7 @@ type model struct {
 	runIndex        int            // index of currently running step
 	runWaitManual   bool           // waiting for Enter on a manual step
 	runManualStep   *Step          // the manual step we're waiting on
+	runWaitNote     bool           // waiting for Enter on a completed step's post-run note
 	runWaitFail     bool           // paused on a failed step, awaiting retry/skip/abort
 	runFailStep     *Step          // the step that failed
 	runFailOutput   string         // captured output of the failed step
@@ -170,6 +171,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state.Steps[msg.step.ID] = StatusCompleted
 		m.runLog = append(m.runLog, runLogEntry{name: msg.step.Name, status: "ok"})
 		m.saveState()
+		if msg.step.Note != "" {
+			// Pause to surface the note before moving on.
+			s := msg.step
+			m.runWaitNote = true
+			m.runManualStep = &s
+			return m, nil
+		}
 		// Continue to next step
 		return m.runNextStep()
 
@@ -344,6 +352,19 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		if m.runWaitNote {
+			if key == "enter" {
+				// Acknowledge the note (step is already marked completed) and advance.
+				m.runWaitNote = false
+				m.runManualStep = nil
+				return m.runNextStep()
+			}
+			if key == "q" {
+				m.saveState()
+				return m, tea.Quit
+			}
+			return m, nil
+		}
 		if m.runWaitManual {
 			if key == "enter" {
 				// Acknowledge manual step and advance.
@@ -412,6 +433,7 @@ func (m model) startCategoryRun() (tea.Model, tea.Cmd) {
 	m.runIndex = 0
 	m.runDone = false
 	m.runWaitManual = false
+	m.runWaitNote = false
 	m.runManualStep = nil
 	m.runFailCounts = make(map[string]int)
 	m.runReturnScreen = screenCategories
@@ -432,6 +454,7 @@ func (m model) startSingleStepRun(step Step) (tea.Model, tea.Cmd) {
 	m.runIndex = 0
 	m.runDone = false
 	m.runWaitManual = false
+	m.runWaitNote = false
 	m.runManualStep = nil
 	m.runFailCounts = make(map[string]int)
 	m.runReturnScreen = screenStepSelect
@@ -800,6 +823,17 @@ func (m model) viewCategoryRun() string {
 		}
 		b.WriteString("\n")
 		b.WriteString(help("  [r] Retry  •  [s] Skip  •  [a] Abort run  •  [q] Quit"))
+		b.WriteString("\n")
+	} else if m.runWaitNote && m.runManualStep != nil {
+		step := *m.runManualStep
+		b.WriteString("\n")
+		b.WriteString(styleSuccess.Render(fmt.Sprintf("  ✓ %s", step.Name)) + "\n")
+		b.WriteString("\n")
+		for _, line := range strings.Split(step.Note, "\n") {
+			b.WriteString(styleManual.Render("  "+line) + "\n")
+		}
+		b.WriteString("\n")
+		b.WriteString(help("  Press [Enter] to continue  •  [q] Quit"))
 		b.WriteString("\n")
 	} else if m.runWaitManual && m.runManualStep != nil {
 		step := *m.runManualStep

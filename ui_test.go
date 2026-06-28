@@ -150,6 +150,13 @@ func TestCategoryRunSequential(t *testing.T) {
 		} else {
 			tm, _ = tm.Update(stepFinishedMsg{step: step})
 			m = tm.(model)
+			if step.Note != "" {
+				if !m.runWaitNote {
+					t.Fatalf("step %d: expected runWaitNote", i)
+				}
+				tm = sendSpecialKey(tm, tea.KeyEnter)
+				m = tm.(model)
+			}
 		}
 	}
 
