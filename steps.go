@@ -106,7 +106,6 @@ func AllSteps() []Step {
 			Description: "Add brew shellenv to .zprofile so brew is available in new shells.",
 			Commands: []string{
 				`echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile`,
-				`eval "$(/opt/homebrew/bin/brew shellenv)"`,
 			},
 		},
 		{
@@ -264,6 +263,16 @@ func AllSteps() []Step {
 			Commands:    []string{`chflags nohidden ~/Library`},
 		},
 		{
+			ID:          "finder-show-hidden",
+			Category:    "Finder Settings",
+			Name:        "Show hidden files and folders",
+			Description: "Display dotfiles and other hidden items in Finder.",
+			Commands: []string{
+				`defaults write com.apple.finder AppleShowAllFiles -bool true`,
+				`killall Finder`,
+			},
+		},
+		{
 			ID:          "finder-default-home",
 			Category:    "Finder Settings",
 			Name:        "Set Finder default to Home",
@@ -352,11 +361,18 @@ func AllSteps() []Step {
 			},
 		},
 		{
-			ID:          "docker-install",
+			ID:          "orbstack-install",
 			Category:    "Development",
-			Name:        "Install Docker",
-			Description: "Container runtime.",
-			Commands:    []string{`brew install docker`},
+			Name:        "Install OrbStack",
+			Description: "Lightweight, fast Docker-compatible container runtime.",
+			Commands:    []string{`brew install --cask orbstack`},
+		},
+		{
+			ID:          "tailscale-install",
+			Category:    "Development",
+			Name:        "Install Tailscale",
+			Description: "Optional: mesh VPN for accessing your other devices.",
+			Commands:    []string{`brew install --cask tailscale`},
 		},
 		{
 			ID:          "brew-formulae",
@@ -375,6 +391,13 @@ func AllSteps() []Step {
 			Name:        "Install antidote",
 			Description: "Zsh plugin manager.",
 			Commands:    []string{`brew install antidote`},
+		},
+		{
+			ID:          "blexmono-nerd-font-install",
+			Category:    "Shell Setup",
+			Name:        "Install BlexMono Nerd Font",
+			Description: "Patched monospace font with glyphs/icons for terminal prompts.",
+			Commands:    []string{`brew install --cask font-blex-mono-nerd-font`},
 		},
 
 		// ── Keyboard ───────────────────────────────────────────────────

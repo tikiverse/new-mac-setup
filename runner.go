@@ -26,6 +26,22 @@ func stripANSI(s string) string {
 	return ansiRe.ReplaceAllString(s, "")
 }
 
+// refreshShellEnv re-sources ~/.zprofile and applies the resulting
+// environment to the current process. Steps run as separate subprocesses, so
+// without this, PATH/env changes a step appends to .zprofile (e.g. brew's
+// shellenv) wouldn't be visible to any later step in the same run.
+func refreshShellEnv() {
+	out, err := exec.Command("bash", "-c", "source ~/.zprofile >/dev/null 2>&1; env -0").Output()
+	if err != nil {
+		return
+	}
+	for _, kv := range strings.Split(strings.TrimRight(string(out), "\x00"), "\x00") {
+		if i := strings.IndexByte(kv, '='); i > 0 {
+			os.Setenv(kv[:i], kv[i+1:])
+		}
+	}
+}
+
 // streamCommand runs a single shell command, invoking onLine for each output
 // segment as it arrives. Segments are split on \n and \r; a segment whose
 // previous delimiter was a bare \r is reported with replace=true so the caller
