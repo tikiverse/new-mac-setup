@@ -8,7 +8,11 @@ type Step struct {
 	Description        string
 	Commands           []string
 	ManualInstructions string
-	RequiresAdmin      bool
+	// Note is shown as a one-time acknowledgement after a command step
+	// succeeds, for caveats the commands themselves can't convey (e.g. a
+	// setting that requires logging out before it takes effect).
+	Note          string
+	RequiresAdmin bool
 	Debug              bool // hidden from the TUI unless launched with --debug
 }
 
@@ -20,15 +24,20 @@ func AllSteps() []Step {
 			ID:          "key-repeat",
 			Category:    "System Preferences",
 			Name:        "Fast key repeat rate",
-			Description: "Set key repeat to fastest setting (1).",
-			Commands:    []string{`defaults write -g KeyRepeat -int 1`},
+			Description: "Set key repeat to fastest setting (1) and shorten the delay before it starts.",
+			Commands: []string{
+				`defaults write NSGlobalDomain KeyRepeat -int 1`,
+				`defaults write NSGlobalDomain InitialKeyRepeat -int 25`,
+			},
+			Note: "This is read at login — log out and back in for it to take effect.",
 		},
 		{
 			ID:          "press-and-hold",
 			Category:    "System Preferences",
 			Name:        "Disable press-and-hold for accents",
 			Description: "Enable key repeat instead of the accent character popup when holding a key.",
-			Commands:    []string{`defaults write -g ApplePressAndHoldEnabled -bool false`},
+			Commands:    []string{`defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false`},
+			Note:        "This is read at login — log out and back in for it to take effect.",
 		},
 		{
 			ID:          "dock-active-only",
@@ -349,10 +358,19 @@ func AllSteps() []Step {
 			ID:          "brew-formulae",
 			Category:    "Development",
 			Name:        "Install CLI tools (brew formulae)",
-			Description: "gh, fzf, ripgrep, jq, neovim, tmux, tree, httpie, tldr, mosh, pnpm, gron, just, llm, mcfly, slides, wifi-password.",
+			Description: "gh, fzf, ripgrep, jq, neovim, tmux, tree, httpie, tldr, mosh, pnpm, gron, just, llm, mcfly, slides, wifi-password, fastfetch, zoxide.",
 			Commands: []string{
-				`brew install gh fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password`,
+				`brew install gh fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password fastfetch zoxide`,
 			},
+		},
+
+		// ── Shell Setup ────────────────────────────────────────────────
+		{
+			ID:          "antidote-install",
+			Category:    "Shell Setup",
+			Name:        "Install antidote",
+			Description: "Zsh plugin manager.",
+			Commands:    []string{`brew install antidote`},
 		},
 
 		// ── Keyboard ───────────────────────────────────────────────────
