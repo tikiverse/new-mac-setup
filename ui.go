@@ -486,6 +486,8 @@ func (m model) runCurrentStep() (tea.Model, tea.Cmd) {
 			out := ""
 			if err != nil {
 				out = "(this step ran in your terminal; output was not captured)"
+			} else {
+				refreshShellEnv()
 			}
 			return stepFinishedMsg{step: s, err: err, output: out}
 		})
@@ -528,6 +530,9 @@ func streamStep(step Step, dryRun bool, ch chan tea.Msg) {
 			ch <- stepFinishedMsg{step: step, err: err, output: full.String()}
 			return
 		}
+	}
+	if !dryRun {
+		refreshShellEnv()
 	}
 	ch <- stepFinishedMsg{step: step, output: full.String()}
 }

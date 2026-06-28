@@ -155,6 +155,7 @@ func runDirect(opts cliOptions) int {
 	if opts.dryRun {
 		return 0
 	}
+	refreshShellEnv()
 	state.Steps[step.ID] = StatusCompleted
 	if err := state.Save(); err != nil {
 		fmt.Fprintf(os.Stderr, "Save failed: %v\n", err)
