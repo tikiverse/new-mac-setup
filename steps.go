@@ -344,7 +344,11 @@ func AllSteps() []Step {
 			Name:        "Install Node.js via n",
 			Description: "Install n version manager and latest Node.js.",
 			Commands: []string{
-				`curl -L https://bit.ly/n-install | bash`,
+				// -y auto-confirms the install prompt, which n-install otherwise
+				// reads from /dev/tty — that prompt is unreachable (and the step
+				// hangs/fails) when commands run through the app's captured,
+				// non-interactive output pipe instead of a real terminal.
+				`curl -L https://bit.ly/n-install | bash -s -- -y`,
 			},
 		},
 		{
