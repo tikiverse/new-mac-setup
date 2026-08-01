@@ -368,13 +368,6 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask orbstack`},
 		},
 		{
-			ID:          "tailscale-install",
-			Category:    "Development",
-			Name:        "Install Tailscale",
-			Description: "Optional: mesh VPN for accessing your other devices.",
-			Commands:    []string{`brew install --cask tailscale`},
-		},
-		{
 			ID:          "brew-formulae",
 			Category:    "Development",
 			Name:        "Install CLI tools (brew formulae)",
@@ -454,6 +447,39 @@ func AllSteps() []Step {
 			Name:        "Install SoundSource",
 			Description: "Advanced audio control for Mac.",
 			Commands:    []string{`brew install --cask soundsource`},
+		},
+
+		// ── Private Network ────────────────────────────────────────────
+		{
+			ID:          "tailscale-install",
+			Category:    "Private Network",
+			Name:        "Install Tailscale",
+			Description: "Mesh VPN for accessing your other devices.",
+			Commands:    []string{`brew install --cask tailscale`},
+		},
+		{
+			ID:          "syncthing-install",
+			Category:    "Private Network",
+			Name:        "Install Syncthing",
+			Description: "Continuous file sync between your devices; starts as a background service.",
+			Commands: []string{
+				`brew install syncthing`,
+				`brew services start syncthing`,
+			},
+			Note: "Never copy key.pem from another machine — each device generates its own identity, and duplicate identities break the mesh.",
+		},
+		{
+			ID:          "syncthing-setup",
+			Category:    "Private Network",
+			Name:        "Configure Syncthing",
+			Description: "Pair with the always-on device over Tailscale and share a folder.",
+			ManualInstructions: "1. Open http://localhost:8384\n" +
+				"2. Add Remote Device → paste the always-on device's ID (kept as a secure\n" +
+				"   note in 1Password, deliberately not in this repo)\n" +
+				"3. Advanced tab → Addresses: tcp://<tailscale-ip>:22000 instead of\n" +
+				"   'dynamic' (needs Tailscale connected)\n" +
+				"4. On that device's Syncthing GUI, accept the prompt and tick the folder\n" +
+				"5. Back here, accept the share and pick a local path, e.g ~/pantry",
 		},
 
 		// ── Testing ────────────────────────────────────────────────────
