@@ -24,7 +24,7 @@ sudo mv mac-setup /usr/local/bin/
 
 ## What it sets up
 
-System prefs, Homebrew, browsers, dev tools (Node, OrbStack, CLI utilities), Finder tweaks, window management, media apps, Chrome extensions, private networking (Tailscale, Syncthing), backup tooling (restic, rclone, rsync), and more. See `steps.go` for the full list.
+System prefs, Homebrew, browsers, dev tools (Node, uv, OrbStack, CLI utilities), dependency cooldowns for npm/pnpm/uv, Finder tweaks, window management, media apps, Chrome extensions, private networking (Tailscale, Syncthing), backup tooling (restic, rclone, rsync), and more. See `steps.go` for the full list.
 
 ## Usage
 

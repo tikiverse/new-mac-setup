@@ -401,6 +401,13 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask 1password-cli`},
 			Note:        "op needs the desktop app to unlock it: in 1Password, Settings → Developer → 'Integrate with 1Password CLI'. Until that is ticked, every op command prompts for your password.",
 		},
+		{
+			ID:          "uv-install",
+			Category:    "Development",
+			Name:        "Install uv",
+			Description: "Fast Python package installer and resolver.",
+			Commands:    []string{`brew install uv`},
+		},
 
 		// ── Shell Setup ────────────────────────────────────────────────
 		{
@@ -533,6 +540,61 @@ func AllSteps() []Step {
 			Note: "Call it by full path — /opt/homebrew/bin/rsync — in scripts and LaunchAgents. " +
 				"launchd runs agents with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin) that excludes /opt/homebrew/bin, " +
 				"so a bare `rsync` there silently resolves to the system one and quietly stops sending only the appended tail.",
+		},
+
+		// ── Supply Chain ───────────────────────────────────────────────
+		// A compromised package release is usually caught and pulled within
+		// days, so refusing versions younger than nine days means the community
+		// does the smoke-testing instead of this machine. Each package manager
+		// spells the same 9-day window differently.
+		{
+			ID:          "npm-cooldown",
+			Category:    "Supply Chain",
+			Name:        "npm: 9-day dependency cooldown",
+			Description: "Refuse npm versions published in the last 9 days.",
+			Commands: []string{
+				`npm config set min-release-age 9 --location=user`,
+				`npm config get min-release-age`,
+			},
+			Note: "npm counts in days. The setting lands in ~/.npmrc and covers transitive dependencies too. " +
+				"Precedence is cli > env > project > user > global, so a single command can still opt out when you genuinely need a fresh release.",
+		},
+		{
+			ID:          "pnpm-cooldown",
+			Category:    "Supply Chain",
+			Name:        "pnpm: 9-day dependency cooldown",
+			Description: "Raise pnpm's minimum release age from its 1-day default to 9 days.",
+			Commands: []string{
+				// pnpm refuses --global config writes while its global bin directory
+				// is missing from PATH, which is the state of any Mac where
+				// `pnpm setup` has not been run. Creating that directory and putting
+				// it on PATH for this one command is enough to get the write through.
+				`mkdir -p "$HOME/Library/pnpm/bin" && PATH="$HOME/Library/pnpm/bin:$PATH" pnpm config set minimumReleaseAge 12960 --global`,
+				`pnpm config get minimumReleaseAge`,
+			},
+			Note: "pnpm counts in minutes, so 12960 = 9 days; since v11 it already defaults to 1440 (one day). The value is stored in ~/Library/Preferences/pnpm/config.yaml. " +
+				"Per-project settings live in pnpm-workspace.yaml, where minimumReleaseAgeExclude can exempt packages you need immediately.",
+		},
+		{
+			ID:          "uv-cooldown",
+			Category:    "Supply Chain",
+			Name:        "uv: 9-day dependency cooldown",
+			Description: "Limit uv to Python packages uploaded more than 9 days ago.",
+			Commands: []string{
+				`mkdir -p "$HOME/.config/uv" && touch "$HOME/.config/uv/uv.toml"`,
+				// Prepend rather than append: an existing uv.toml may already open a
+				// [table], and a key appended below one would be read as part of it.
+				`grep -qs "^[[:space:]]*exclude-newer" "$HOME/.config/uv/uv.toml" && echo "exclude-newer is already set — leaving it alone" || { printf 'exclude-newer = "9 days"\n' | cat - "$HOME/.config/uv/uv.toml" > "$HOME/.config/uv/uv.toml.new" && mv "$HOME/.config/uv/uv.toml.new" "$HOME/.config/uv/uv.toml"; }`,
+				// Resolving an empty requirements file is the cheapest way to make uv
+				// parse the config it just wrote; a broken uv.toml fails the step here
+				// rather than at the next real install.
+				// Discard the resolution through a pipe rather than `-o /dev/null`:
+				// uv writes its output file atomically via a sibling temp file, and
+				// /dev/.tmpXXXX is not a path macOS lets it create.
+				`if command -v uv >/dev/null; then uv pip compile /dev/null >/dev/null 2>&1 && echo "✓ uv reads the config"; else echo "(uv is not installed yet — the config is in place for when it is)"; fi`,
+			},
+			Note: "uv takes a relative duration, so the window rolls forward on its own rather than pinning a date. Units coarser than days are rejected — '9 days', not '1 week'. " +
+				"Override per command with --exclude-newer, or exempt one package with --exclude-newer-package.",
 		},
 
 		// ── Testing ────────────────────────────────────────────────────

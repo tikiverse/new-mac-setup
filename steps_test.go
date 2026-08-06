@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestTestingCategoryIsDebugOnly(t *testing.T) {
 	// Test steps still exist in AllSteps so the CLI can find them by id,
@@ -62,6 +65,33 @@ func TestStepsAreWellFormed(t *testing.T) {
 			t.Errorf("step %q has no name", s.ID)
 		case len(s.Commands) == 0 && s.ManualInstructions == "":
 			t.Errorf("step %q has neither commands nor manual instructions", s.ID)
+		}
+	}
+}
+
+// The three cooldown steps express one decision — a 9-day window — in three
+// different units, so changing one and forgetting the others is the easy
+// mistake. Each package manager's spelling of "9 days" is pinned here.
+func TestCooldownStepsShareOneWindow(t *testing.T) {
+	want := map[string]string{
+		"npm-cooldown":  "min-release-age 9",       // npm counts in days
+		"pnpm-cooldown": "minimumReleaseAge 12960", // pnpm counts in minutes
+		"uv-cooldown":   `exclude-newer = "9 days"`,
+	}
+
+	for id, substr := range want {
+		step, ok := StepByID(id)
+		if !ok {
+			t.Errorf("step %q is missing", id)
+			continue
+		}
+		if !strings.Contains(strings.Join(step.Commands, "\n"), substr) {
+			t.Errorf("step %q should set a 9-day window (looking for %q) — if the window changed, change all three", id, substr)
+		}
+		// They are meant to be runnable as one category, without dragging the
+		// Development installs along.
+		if step.Category != "Supply Chain" {
+			t.Errorf("step %q should be in Supply Chain, got %q", id, step.Category)
 		}
 	}
 }
