@@ -306,6 +306,17 @@ func (m model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				step := m.stepSelectSteps[m.stepSelectCursor-1]
 				m.stepSelected[step.ID] = !m.stepSelected[step.ID]
 			}
+		case "X":
+			// Toggle the done checkmark without running anything — the TUI
+			// counterpart of "mac-setup <id> --done" / "--reset". On the
+			// Select All row it applies to the whole category.
+			if m.stepSelectCursor == 0 {
+				m.setCategoryDone(!m.allStepsDoneInCat())
+			} else {
+				step := m.stepSelectSteps[m.stepSelectCursor-1]
+				m.setStepDone(step, m.state.Steps[step.ID] != StatusCompleted)
+			}
+			m.saveState()
 		case "R":
 			m.confirmReset = true
 		case "G":
@@ -596,6 +607,38 @@ func (m *model) navigateCategory(dir int) {
 	m.stepSelectCursor = 0
 }
 
+// setStepDone marks a step completed, or clears its status entirely when done
+// is false. Clearing removes any failed/skipped history too, matching what
+// "mac-setup <id> --reset" does, so a step marked not-done is offered again as
+// if it had never run.
+func (m *model) setStepDone(step Step, done bool) {
+	if done {
+		m.state.Steps[step.ID] = StatusCompleted
+		return
+	}
+	delete(m.state.Steps, step.ID)
+}
+
+// setCategoryDone applies setStepDone to every step listed for the current
+// category.
+func (m *model) setCategoryDone(done bool) {
+	for _, s := range m.stepSelectSteps {
+		m.setStepDone(s, done)
+	}
+}
+
+// allStepsDoneInCat reports whether every step of the current category is
+// marked completed. Unlike isCategoryDone, a skipped step does not count: the
+// Select All toggle should still have somewhere to go.
+func (m model) allStepsDoneInCat() bool {
+	for _, s := range m.stepSelectSteps {
+		if m.state.Steps[s.ID] != StatusCompleted {
+			return false
+		}
+	}
+	return true
+}
+
 func (m model) allStepsSelectedInCat() bool {
 	for _, s := range m.stepSelectSteps {
 		if !m.stepSelected[s.ID] {
@@ -780,7 +823,7 @@ func (m model) viewStepSelect() string {
 	} else {
 		b.WriteString(help("  [G] Run category  [L] Launch step"))
 		b.WriteString("\n")
-		b.WriteString(help("  [↑/k] Up  [↓/j] Down  [Space/→] Toggle"))
+		b.WriteString(help("  [↑/k] Up  [↓/j] Down  [Space/→] Toggle  [X] Toggle done"))
 		b.WriteString("\n")
 		b.WriteString(help("  [Esc/←] Back  [R] Reset checkmarks"))
 		b.WriteString("\n")

@@ -62,6 +62,7 @@ executed.
 | `↑/↓` or `j/k` | Navigate |
 | `→`/`l` | Enter a category · select (toggle) a step |
 | `Space` | Toggle step selection |
+| `X` | Toggle the highlighted step done/not done, without running it (on the *Select All* row: the whole category) |
 | `Enter` | Enter a category (or return from the step list) |
 | `←`/`h` or `Esc`/`Backspace` | Back |
 | `G` | Run the category's selected steps |
