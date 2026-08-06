@@ -13,7 +13,7 @@ type Step struct {
 	// setting that requires logging out before it takes effect).
 	Note          string
 	RequiresAdmin bool
-	Debug              bool // hidden from the TUI unless launched with --debug
+	Debug         bool // hidden from the TUI unless launched with --debug
 }
 
 // AllSteps returns the full ordered list of setup steps derived from the notion export.
@@ -88,6 +88,16 @@ func AllSteps() []Step {
 			ManualInstructions: "Go to System Settings → Accessibility → Zoom\n" +
 				"Enable 'Use scroll gesture with modifier keys to zoom'\n" +
 				"Set modifier to ^ Control.",
+		},
+		{
+			ID:          "screenshots-dir",
+			Category:    "System Preferences",
+			Name:        "Change screenshots directory",
+			Description: "Save screenshots to ~/Screenshots instead of Desktop.",
+			Commands: []string{
+				`mkdir -p ~/Screenshots`,
+				`defaults write com.apple.screencapture location -string "${HOME}/Screenshots"`,
+			},
 		},
 
 		// ── Homebrew & Terminal ─────────────────────────────────────────
@@ -345,6 +355,13 @@ func AllSteps() []Step {
 			Commands:      []string{`brew install --cask zoom`},
 			RequiresAdmin: true,
 		},
+		{
+			ID:          "soundsource-install",
+			Category:    "Media Apps",
+			Name:        "Install SoundSource",
+			Description: "Advanced audio control for Mac.",
+			Commands:    []string{`brew install --cask soundsource`},
+		},
 
 		// ── Development ────────────────────────────────────────────────
 		{
@@ -375,6 +392,14 @@ func AllSteps() []Step {
 			Commands: []string{
 				`brew install gh fzf ripgrep jq neovim tmux tree httpie tldr mosh pnpm gron just llm mcfly slides wifi-password fastfetch zoxide`,
 			},
+		},
+		{
+			ID:          "1password-cli-install",
+			Category:    "Development",
+			Name:        "Install 1Password CLI",
+			Description: "op — read secrets from 1Password in scripts and the shell.",
+			Commands:    []string{`brew install --cask 1password-cli`},
+			Note:        "op needs the desktop app to unlock it: in 1Password, Settings → Developer → 'Integrate with 1Password CLI'. Until that is ticked, every op command prompts for your password.",
 		},
 
 		// ── Shell Setup ────────────────────────────────────────────────
@@ -430,25 +455,6 @@ func AllSteps() []Step {
 				"   https://apple.stackexchange.com/a/108129",
 		},
 
-		// ── Additional Tweaks ──────────────────────────────────────────
-		{
-			ID:          "screenshots-dir",
-			Category:    "Additional Tweaks",
-			Name:        "Change screenshots directory",
-			Description: "Save screenshots to ~/Screenshots instead of Desktop.",
-			Commands: []string{
-				`mkdir -p ~/Screenshots`,
-				`defaults write com.apple.screencapture location -string "${HOME}/Screenshots"`,
-			},
-		},
-		{
-			ID:          "soundsource-install",
-			Category:    "Additional Tweaks",
-			Name:        "Install SoundSource",
-			Description: "Advanced audio control for Mac.",
-			Commands:    []string{`brew install --cask soundsource`},
-		},
-
 		// ── Private Network ────────────────────────────────────────────
 		{
 			ID:          "tailscale-install",
@@ -491,6 +497,42 @@ func AllSteps() []Step {
 				"2. Sharing tab → tick the always-on device, then Save\n" +
 				"3. On the always-on device: Remote Devices → this Mac → Edit → Advanced tab → Addresses: tcp://<tailscale-id>:22000 instead of 'dynamic', using this Mac's Tailscale ID\n" +
 				"4. Accept the folder share when it appears on the always-on device",
+		},
+
+		// ── Backup ─────────────────────────────────────────────────────
+		{
+			ID:          "restic-install",
+			Category:    "Backup",
+			Name:        "Install restic",
+			Description: "Encrypted, deduplicated snapshot backups.",
+			Commands:    []string{`brew install restic`},
+			Note: "restic keeps no config of its own — a repository is created with `restic init -r <repo>` and unlocked only by the password you choose. " +
+				"Store that password somewhere you can reach from a dead machine (1Password): without it the backups are unrecoverable.",
+		},
+		{
+			ID:          "rclone-install",
+			Category:    "Backup",
+			Name:        "Install rclone",
+			Description: "Move files to and from cloud storage remotes (also a restic backend).",
+			Commands:    []string{`brew install rclone`},
+			Note:        "Remotes are added interactively with `rclone config`; the credentials it writes live in ~/.config/rclone/rclone.conf, so treat that file as a secret.",
+		},
+		{
+			ID:          "rsync-install",
+			Category:    "Backup",
+			Name:        "Install rsync (Homebrew)",
+			Description: "macOS ships rsync 2.6.9 or openrsync; neither supports --append-verify.",
+			Commands: []string{
+				`brew install rsync`,
+				// Probe the flag rather than parsing --version: the system binary is
+				// rsync 2.6.9 on some macOS releases and openrsync on others, and the
+				// two report versions differently. Either way this exits non-zero and
+				// fails the step if the wrong rsync is on the path.
+				`/opt/homebrew/bin/rsync --append-verify --version >/dev/null && echo "✓ /opt/homebrew/bin/rsync supports --append-verify"`,
+			},
+			Note: "Call it by full path — /opt/homebrew/bin/rsync — in scripts and LaunchAgents. " +
+				"launchd runs agents with a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin) that excludes /opt/homebrew/bin, " +
+				"so a bare `rsync` there silently resolves to the system one and quietly stops sending only the appended tail.",
 		},
 
 		// ── Testing ────────────────────────────────────────────────────
