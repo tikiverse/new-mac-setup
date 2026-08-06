@@ -6,7 +6,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
+
+// minWrapWidth is the narrowest column count wrapped prose will be squeezed
+// into. Below this, a deeply indented line would wrap to near-nothing, so we
+// let it overflow instead.
+const minWrapWidth = 24
 
 // ── Screens ────────────────────────────────────────────────────────────────
 
@@ -834,8 +840,8 @@ func (m model) viewCategoryRun() string {
 		b.WriteString("\n")
 		b.WriteString(styleSuccess.Render(fmt.Sprintf("  ✓ %s", step.Name)) + "\n")
 		b.WriteString("\n")
-		for _, line := range strings.Split(step.Note, "\n") {
-			b.WriteString(styleManual.Render("  "+line) + "\n")
+		for _, line := range wrapIndented(step.Note, "  ", m.width) {
+			b.WriteString(styleManual.Render(line) + "\n")
 		}
 		b.WriteString("\n")
 		b.WriteString(help("  Press [Enter] to continue  •  [q] Quit"))
@@ -845,8 +851,8 @@ func (m model) viewCategoryRun() string {
 		b.WriteString("\n")
 		b.WriteString(styleWarning.Render(fmt.Sprintf("  ✋ %s", step.Name)) + "\n")
 		b.WriteString("\n")
-		for _, line := range strings.Split(step.ManualInstructions, "\n") {
-			b.WriteString(styleManual.Render("  "+line) + "\n")
+		for _, line := range wrapIndented(step.ManualInstructions, "  ", m.width) {
+			b.WriteString(styleManual.Render(line) + "\n")
 		}
 		b.WriteString("\n")
 		b.WriteString(help("  Press [Enter] when done  •  [q] Quit"))
@@ -931,6 +937,50 @@ func tailLines(s string, n int) []string {
 		lines = lines[len(lines)-n:]
 	}
 	return lines
+}
+
+// wrapIndented word-wraps s to fit width columns, prefixing every returned line
+// with indent. Each source line keeps its own leading whitespace on whatever
+// continuation lines it spills onto, so numbered lists and their indented
+// sub-items stay aligned instead of flattening to the left margin.
+//
+// Words longer than the available space are left to overflow rather than broken
+// mid-token — a hard-wrapped URL is worse than one that runs past the edge.
+func wrapIndented(s, indent string, width int) []string {
+	if width <= 0 {
+		width = 80 // no WindowSizeMsg yet; assume a conventional terminal
+	}
+	avail := width - lipgloss.Width(indent)
+
+	var out []string
+	for _, line := range strings.Split(s, "\n") {
+		body := strings.TrimLeft(line, " ")
+		if body == "" {
+			out = append(out, indent)
+			continue
+		}
+		hang := line[:len(line)-len(body)]
+
+		room := avail - lipgloss.Width(hang)
+		if room < minWrapWidth {
+			room = minWrapWidth
+		}
+
+		cur := ""
+		for _, word := range strings.Fields(body) {
+			switch {
+			case cur == "":
+				cur = word
+			case lipgloss.Width(cur)+1+lipgloss.Width(word) <= room:
+				cur += " " + word
+			default:
+				out = append(out, indent+hang+cur)
+				cur = word
+			}
+		}
+		out = append(out, indent+hang+cur)
+	}
+	return out
 }
 
 func max(a, b int) int {
