@@ -20,6 +20,19 @@ func TestParseArgs(t *testing.T) {
 		{"conflicting actions", []string{"x", "--run", "--copy"}, cliOptions{}, true},
 		{"unknown flag", []string{"x", "--nope"}, cliOptions{}, true},
 		{"two ids", []string{"a", "b"}, cliOptions{}, true},
+
+		// Action flags act on one step, so a missing id is an error rather
+		// than a silent fall-through to the TUI.
+		{"run without id", []string{"--run"}, cliOptions{}, true},
+		{"done without id", []string{"--done"}, cliOptions{}, true},
+		{"reset without id", []string{"--reset"}, cliOptions{}, true},
+		{"copy without id", []string{"--copy"}, cliOptions{}, true},
+		{"run without id, flags around it", []string{"-n", "--run"}, cliOptions{}, true},
+
+		// TUI-only flags must still launch the TUI with no id.
+		{"dry-run alone is the TUI", []string{"--dry-run"}, cliOptions{dryRun: true}, false},
+		{"debug alone is the TUI", []string{"--debug"}, cliOptions{debug: true}, false},
+		{"both TUI flags", []string{"--debug", "-n"}, cliOptions{dryRun: true, debug: true}, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -37,6 +50,19 @@ func TestParseArgs(t *testing.T) {
 				t.Fatalf("parseArgs(%v) = %+v, want %+v", tc.args, got, tc.want)
 			}
 		})
+	}
+}
+
+// The error must name the flag that was misused, so the fix is obvious.
+func TestParseArgsActionWithoutIDNamesTheFlag(t *testing.T) {
+	for _, flag := range []string{"--run", "--done", "--reset", "--copy"} {
+		_, err := parseArgs([]string{flag})
+		if err == nil {
+			t.Fatalf("%s without a step id should be an error", flag)
+		}
+		if !contains(err.Error(), flag) {
+			t.Errorf("error for %s should name the flag, got %q", flag, err)
+		}
 	}
 }
 
