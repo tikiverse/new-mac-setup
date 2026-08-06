@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -132,8 +133,7 @@ func actionFlag(a cliAction) string {
 func runDirect(opts cliOptions) int {
 	step, ok := StepByID(opts.stepID)
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Unknown step id: %q\n", opts.stepID)
-		fmt.Fprintln(os.Stderr, "Run mac-setup with no arguments to browse step ids.")
+		printUnknownStepID(opts.stepID)
 		return 1
 	}
 	state, err := LoadState()
@@ -201,6 +201,164 @@ func runDirect(opts cliOptions) int {
 		fmt.Printf("\n%s %s\n", styleWarning.Render("Note:"), styleManual.Render(step.Note))
 	}
 	return 0
+}
+
+// minSubstringQuery is the shortest input allowed to match on containment
+// alone. Below it a query is too weak to mean anything — a lone "s" appears in
+// 65 of the ids — so short inputs are held to the stronger prefix and typo
+// tests instead.
+const minSubstringQuery = 3
+
+// maxSuggestions bounds the printed list. It sits above what any realistic
+// query matches (the widest, "finder", finds 7) so it only fires on a fragment
+// like "install" that matches every install step, and the remainder is counted
+// rather than dropped silently.
+const maxSuggestions = 10
+
+// printUnknownStepID reports an id that matched no step, offering the closest
+// ids it can find. Everything goes to stderr so a caller piping stdout still
+// sees why nothing happened.
+func printUnknownStepID(id string) {
+	fmt.Fprintf(os.Stderr, "Unknown step id: %q\n", id)
+
+	matches := suggestStepIDs(id)
+	rest := 0
+	if len(matches) > maxSuggestions {
+		rest = len(matches) - maxSuggestions
+		matches = matches[:maxSuggestions]
+	}
+
+	switch len(matches) {
+	case 0:
+	case 1:
+		fmt.Fprintf(os.Stderr, "\nDid you mean %s?\n", styleWarning.Render(matches[0]))
+	default:
+		fmt.Fprintln(os.Stderr, "\nDid you mean one of these?")
+		width := 0
+		for _, m := range matches {
+			if len(m) > width {
+				width = len(m)
+			}
+		}
+		for _, m := range matches {
+			// Pad before styling: the ANSI codes lipgloss adds would otherwise
+			// be counted as width by a %-*s verb.
+			pad := strings.Repeat(" ", width-len(m))
+			name := ""
+			if step, ok := StepByID(m); ok {
+				name = step.Name
+			}
+			fmt.Fprintf(os.Stderr, "  %s%s  %s\n", styleWarning.Render(m), pad, styleDescription.Render(name))
+		}
+		// Count what was left out, so the list never reads as exhaustive.
+		if rest > 0 {
+			fmt.Fprintf(os.Stderr, "  %s\n", styleDim.Render(fmt.Sprintf("… and %d more", rest)))
+		}
+	}
+
+	fmt.Fprintln(os.Stderr, "\nRun mac-setup with no arguments to browse step ids.")
+}
+
+// suggestStepIDs returns every step id close enough to input to be worth
+// offering, best match first, or nothing when the input resembles no id at all.
+//
+// Every match is returned; the caller decides how many to print. The tests for
+// what counts as a match are kept strict enough that realistic queries stay
+// well inside that limit, since withholding a match risks hiding the very id
+// the user was reaching for.
+//
+// Matching is case-insensitive. An id containing what was typed ranks above a
+// misspelling of one, since "tailscale" is a person naming the thing they want
+// rather than fumbling the keys. Equally good matches keep the order they are
+// declared in, which is the order the TUI lists them and the order they are
+// meant to be run — so "syncthing" offers syncthing-install before the pairing
+// step that follows it. Misspellings are bounded by edit distance so an
+// unrelated id is never offered.
+func suggestStepIDs(input string) []string {
+	query := strings.ToLower(strings.TrimSpace(input))
+	if query == "" {
+		return nil
+	}
+
+	type candidate struct {
+		id   string
+		rank int // kind of match; lower is better
+		dist int // edit distance, for ranking misspellings against each other
+		idx  int // position in AllSteps, so ties keep declaration order
+	}
+	var found []candidate
+
+	for i, s := range AllSteps() {
+		id := strings.ToLower(s.ID)
+		switch {
+		case id == query: // right id, wrong case
+			found = append(found, candidate{s.ID, 0, 0, i})
+		case strings.HasPrefix(id, query):
+			found = append(found, candidate{s.ID, 1, 0, i})
+		case len(query) >= minSubstringQuery && strings.Contains(id, query):
+			found = append(found, candidate{s.ID, 2, 0, i})
+		default:
+			if d := editDistance(id, query); d <= typoBudget(query) {
+				found = append(found, candidate{s.ID, 3, d, i})
+			}
+		}
+	}
+
+	sort.Slice(found, func(i, j int) bool {
+		a, b := found[i], found[j]
+		if a.rank != b.rank {
+			return a.rank < b.rank
+		}
+		if a.dist != b.dist {
+			return a.dist < b.dist
+		}
+		return a.idx < b.idx
+	})
+
+	ids := make([]string, len(found))
+	for i, c := range found {
+		ids[i] = c.id
+	}
+	return ids
+}
+
+// typoBudget is how many single-character edits an id may sit away from the
+// input and still be worth offering. It scales with what was typed: one edit is
+// a plausible slip in a short id, but allowing three would make every short id
+// a match for every other.
+func typoBudget(query string) int {
+	switch n := len([]rune(query)); {
+	case n <= 4:
+		return 1
+	case n <= 8:
+		return 2
+	default:
+		return 3
+	}
+}
+
+// editDistance returns the Levenshtein distance between a and b, counting one
+// per inserted, deleted or substituted character.
+func editDistance(a, b string) int {
+	ar, br := []rune(a), []rune(b)
+	// Only the previous row is needed to compute the next one.
+	prev := make([]int, len(br)+1)
+	cur := make([]int, len(br)+1)
+	for j := range prev {
+		prev[j] = j
+	}
+	for i := 1; i <= len(ar); i++ {
+		cur[0] = i
+		for j := 1; j <= len(br); j++ {
+			sub := prev[j-1]
+			if ar[i-1] != br[j-1] {
+				sub++
+			}
+			cur[j] = min(cur[j-1]+1, min(prev[j]+1, sub))
+		}
+		prev, cur = cur, prev
+	}
+	return prev[len(br)]
 }
 
 // showStep prints a step's metadata and command(s) without executing anything.

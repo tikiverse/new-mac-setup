@@ -55,6 +55,16 @@ installers) and live output work natively; it records the step done on success
 (or failed on error). Manual, instruction-only steps are printed rather than
 executed.
 
+Ids don't have to be typed exactly right — an unrecognised one is matched
+case-insensitively against the catalogue, and near misses are offered back:
+
+```
+$ ./mac-setup tailscale --run
+Unknown step id: "tailscale"
+
+Did you mean tailscale-install?
+```
+
 ## Controls
 
 | Key | Action |
