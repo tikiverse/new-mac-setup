@@ -37,6 +37,35 @@ func TestTestingCategoryIsDebugOnly(t *testing.T) {
 	}
 }
 
+// Step ids are the CLI's handle on a step and the key progress is stored
+// under, so a duplicate would silently shadow another step's state.
+func TestStepIDsAreUnique(t *testing.T) {
+	seen := map[string]string{}
+	for _, s := range AllSteps() {
+		if prev, dup := seen[s.ID]; dup {
+			t.Fatalf("duplicate step id %q, used by %q and %q", s.ID, prev, s.Name)
+		}
+		seen[s.ID] = s.Name
+	}
+}
+
+// Every step needs an id, a category and something to do — a step with neither
+// commands nor instructions would render as an empty run and mark itself done.
+func TestStepsAreWellFormed(t *testing.T) {
+	for _, s := range AllSteps() {
+		switch {
+		case s.ID == "":
+			t.Errorf("step %q has no id", s.Name)
+		case s.Category == "":
+			t.Errorf("step %q has no category", s.ID)
+		case s.Name == "":
+			t.Errorf("step %q has no name", s.ID)
+		case len(s.Commands) == 0 && s.ManualInstructions == "":
+			t.Errorf("step %q has neither commands nor manual instructions", s.ID)
+		}
+	}
+}
+
 func TestNewModelHidesTestingCategory(t *testing.T) {
 	m := newModel(&AppState{Steps: make(map[string]StepStatus)})
 	for _, c := range m.categories {
