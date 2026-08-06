@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestParseArgs(t *testing.T) {
 	cases := []struct {
@@ -105,6 +108,81 @@ func TestRunDirectDoneReset(t *testing.T) {
 	}
 }
 
+func TestSuggestStepIDs(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		want  string // expected best match, "" for no suggestions at all
+	}{
+		{"partial name from the issue", "tailscale", "tailscale-install"},
+		{"wrong case", "TAILSCALE-INSTALL", "tailscale-install"},
+		{"transposed and missing letters", "tailscal-instal", "tailscale-install"},
+		{"single typo", "finder-path-br", "finder-path-bar"},
+		{"leading and trailing space", "  syncthing-setup  ", "syncthing-setup"},
+		{"ties keep declaration order", "syncthing", "syncthing-install"},
+		{"prefix beats a mere typo", "1password", "1password-install"},
+		{"nothing like any id", "xyzzyplugh", ""},
+		{"empty", "", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := suggestStepIDs(tc.input)
+			if tc.want == "" {
+				if len(got) != 0 {
+					t.Fatalf("expected no suggestions for %q, got %v", tc.input, got)
+				}
+				return
+			}
+			if len(got) == 0 {
+				t.Fatalf("expected %q to suggest %q, got nothing", tc.input, tc.want)
+			}
+			if got[0] != tc.want {
+				t.Fatalf("expected %q to suggest %q first, got %v", tc.input, tc.want, got)
+			}
+		})
+	}
+}
+
+// A suggestion that is not a real id would send the user straight into another
+// unknown-id error.
+func TestSuggestionsAreRealStepIDs(t *testing.T) {
+	for _, id := range suggestStepIDs("install") {
+		if _, ok := StepByID(id); !ok {
+			t.Errorf("suggested %q, which is not a step id", id)
+		}
+	}
+}
+
+// Every id must at minimum suggest itself, which also guards the typo budget
+// against being tightened until real ids stop matching.
+func TestEveryStepIDSuggestsItself(t *testing.T) {
+	for _, s := range AllSteps() {
+		got := suggestStepIDs(s.ID)
+		if len(got) == 0 || got[0] != s.ID {
+			t.Errorf("id %q should be its own first suggestion, got %v", s.ID, got)
+		}
+	}
+}
+
+func TestEditDistance(t *testing.T) {
+	cases := []struct {
+		a, b string
+		want int
+	}{
+		{"", "", 0},
+		{"abc", "abc", 0},
+		{"abc", "", 3},
+		{"kitten", "sitting", 3},
+		{"tailscale", "tailscle", 1},
+	}
+	for _, tc := range cases {
+		if got := editDistance(tc.a, tc.b); got != tc.want {
+			t.Errorf("editDistance(%q, %q) = %d, want %d", tc.a, tc.b, got, tc.want)
+		}
+	}
+}
+
 func TestRunDirectUnknownID(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	if code := runDirect(cliOptions{stepID: "nope", action: actionDone}); code != 1 {
@@ -132,5 +210,30 @@ func TestRunDirectManualStepIsNotMarked(t *testing.T) {
 	}
 	if s, _ := LoadState(); s.Steps[id] == StatusCompleted {
 		t.Fatal("a manual step should not be auto-marked done by a direct run")
+	}
+}
+
+// The cap is meant to fire only on a fragment that matches half the catalogue.
+// If an ordinary query ever bumps into it, the cap is what needs raising —
+// truncating these would hide the id the user was reaching for.
+func TestRealisticQueriesFitUnderTheCap(t *testing.T) {
+	for _, q := range []string{"finder", "syncthing", "1password", "brew", "chrome", "setup", "s", "tailscale"} {
+		if n := len(suggestStepIDs(q)); n > maxSuggestions {
+			t.Errorf("%q matched %d ids, past the cap of %d", q, n, maxSuggestions)
+		}
+	}
+}
+
+// A one or two character input matches too much to be meaningful on
+// containment alone, so it is held to prefix and typo matching instead.
+func TestShortQueriesDoNotMatchOnContainmentAlone(t *testing.T) {
+	got := suggestStepIDs("s")
+	if len(got) > 10 {
+		t.Fatalf("a single character should not match most of the catalogue, got %d suggestions", len(got))
+	}
+	for _, id := range got {
+		if !strings.HasPrefix(strings.ToLower(id), "s") && editDistance(strings.ToLower(id), "s") > typoBudget("s") {
+			t.Errorf("%q matched %q only by containment", id, "s")
+		}
 	}
 }
