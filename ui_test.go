@@ -650,6 +650,42 @@ func TestRunDoneKeepsStreamOutputVisible(t *testing.T) {
 	}
 }
 
+func TestRunViewShowsCLIEquivalent(t *testing.T) {
+	step, ok := StepByID("tailscale-install")
+	if !ok {
+		t.Skip("tailscale-install step not present")
+	}
+	m := newModel(&AppState{Steps: make(map[string]StepStatus)})
+	m.screen = screenCategoryRun
+	m.runCategory = step.Category
+	m.runSteps = []Step{step}
+	m.runIndex = 0
+	m.runViewport.Width = 80
+	m.runViewport.Height = 10
+
+	want := "$ mac-setup " + step.ID + " --run"
+	out := m.viewCategoryRun()
+	if !contains(out, want) {
+		t.Fatalf("expected run view to show %q, got:\n%s", want, out)
+	}
+	// The hint belongs directly under the running step's name.
+	lines := strings.Split(out, "\n")
+	for i, line := range lines {
+		if contains(line, step.Name) {
+			if i+1 >= len(lines) || !contains(lines[i+1], want) {
+				t.Fatalf("expected %q on the line after the step name, got:\n%s", want, out)
+			}
+			break
+		}
+	}
+
+	// Once the run is over, no step is in flight — drop the hint.
+	m.runDone = true
+	if out := m.viewCategoryRun(); contains(out, want) {
+		t.Fatalf("expected the hint to disappear when the run is done, got:\n%s", out)
+	}
+}
+
 func TestAdminStepUsesTerminalHandoff(t *testing.T) {
 	// The App Store installs and Zoom need a sudo password, so they must be admin.
 	for _, id := range []string{"zoom-install", "things-install", "amphetamine-install"} {

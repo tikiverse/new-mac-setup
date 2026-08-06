@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+// appName is the installed executable's name, used in help text and in the
+// TUI's "run this step by itself" hint.
+const appName = "mac-setup"
+
 const usage = `mac-setup — a-la-carte Mac setup
 
 Usage:
@@ -205,6 +209,12 @@ func showStep(step Step, state *AppState) int {
 	fmt.Printf("  mac-setup %s %s   only mark it not done\n", step.ID, styleWarning.Render("--reset"))
 	fmt.Printf("  mac-setup %s %s    only copy %s to clipboard\n", step.ID, styleWarning.Render("--copy"), copyTarget(step))
 	return 0
+}
+
+// cliInvocation returns the command line that runs a step by itself from the
+// terminal, e.g. "mac-setup tailscale --run".
+func cliInvocation(step Step) string {
+	return fmt.Sprintf("%s %s --run", appName, step.ID)
 }
 
 // copyTarget describes what --copy puts on the clipboard for a step.
