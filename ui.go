@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -939,10 +940,25 @@ func tailLines(s string, n int) []string {
 	return lines
 }
 
+// listMarker matches the "1." / "-" / "•" style prefixes used to open an item
+// in a step's instructions, along with the whitespace separating it from the
+// text, so continuations can be hung underneath the text rather than the marker.
+var listMarker = regexp.MustCompile(`^(?:\d+[.)]|[-*•])\s+`)
+
+// markerIndent returns the blank hanging indent matching any list marker that
+// opens body, or "" when body does not start one.
+func markerIndent(body string) string {
+	return strings.Repeat(" ", lipgloss.Width(listMarker.FindString(body)))
+}
+
 // wrapIndented word-wraps s to fit width columns, prefixing every returned line
-// with indent. Each source line keeps its own leading whitespace on whatever
-// continuation lines it spills onto, so numbered lists and their indented
-// sub-items stay aligned instead of flattening to the left margin.
+// with indent.
+//
+// Lines that already fit are emitted untouched, so deliberate internal spacing
+// (the aligned "Folder ID:" columns in the Syncthing steps, say) survives. A
+// line that must be wrapped keeps its own leading whitespace on every
+// continuation, and one opening a list item hangs its continuations under the
+// text rather than the marker.
 //
 // Words longer than the available space are left to overflow rather than broken
 // mid-token — a hard-wrapped URL is worse than one that runs past the edge.
@@ -950,7 +966,6 @@ func wrapIndented(s, indent string, width int) []string {
 	if width <= 0 {
 		width = 80 // no WindowSizeMsg yet; assume a conventional terminal
 	}
-	avail := width - lipgloss.Width(indent)
 
 	var out []string
 	for _, line := range strings.Split(s, "\n") {
@@ -959,11 +974,16 @@ func wrapIndented(s, indent string, width int) []string {
 			out = append(out, indent)
 			continue
 		}
-		hang := line[:len(line)-len(body)]
+		if lipgloss.Width(indent+line) <= width {
+			out = append(out, indent+line)
+			continue
+		}
 
-		room := avail - lipgloss.Width(hang)
-		if room < minWrapWidth {
-			room = minWrapWidth
+		prefix := indent + line[:len(line)-len(body)]
+		hanging := prefix + markerIndent(body)
+
+		room := func(p string) int {
+			return max(width-lipgloss.Width(p), minWrapWidth)
 		}
 
 		cur := ""
@@ -971,14 +991,15 @@ func wrapIndented(s, indent string, width int) []string {
 			switch {
 			case cur == "":
 				cur = word
-			case lipgloss.Width(cur)+1+lipgloss.Width(word) <= room:
+			case lipgloss.Width(cur)+1+lipgloss.Width(word) <= room(prefix):
 				cur += " " + word
 			default:
-				out = append(out, indent+hang+cur)
+				out = append(out, prefix+cur)
+				prefix = hanging
 				cur = word
 			}
 		}
-		out = append(out, indent+hang+cur)
+		out = append(out, prefix+cur)
 	}
 	return out
 }

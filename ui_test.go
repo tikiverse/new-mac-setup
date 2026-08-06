@@ -750,3 +750,34 @@ func TestManualInstructionsWrapInRunView(t *testing.T) {
 		}
 	}
 }
+
+func TestWrapIndentedKeepsFittingLinesVerbatim(t *testing.T) {
+	// Deliberate column alignment must survive when the line already fits.
+	s := "     Folder Label: pantry\n" +
+		"     Folder ID:    pantry"
+
+	got := wrapIndented(s, "  ", 80)
+	want := []string{
+		"       Folder Label: pantry",
+		"       Folder ID:    pantry",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestWrapIndentedHangsListContinuationsUnderText(t *testing.T) {
+	got := wrapIndented("3. On the always-on device, open the advanced tab", "", 30)
+
+	if len(got) < 2 {
+		t.Fatalf("expected the line to wrap, got %q", got)
+	}
+	if strings.HasPrefix(got[0], " ") {
+		t.Errorf("first line should not be indented: %q", got[0])
+	}
+	for _, line := range got[1:] {
+		if !strings.HasPrefix(line, "   ") {
+			t.Errorf("continuation should hang under the text, got %q", line)
+		}
+	}
+}
