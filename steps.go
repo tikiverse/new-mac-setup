@@ -471,15 +471,29 @@ func AllSteps() []Step {
 		{
 			ID:          "syncthing-setup",
 			Category:    "Private Network",
-			Name:        "Configure Syncthing",
-			Description: "Pair with the always-on device over Tailscale and share a folder.",
+			Name:        "Pair Syncthing with the always-on device",
+			Description: "Introduce this Mac to the always-on device over Tailscale.",
 			ManualInstructions: "1. Open http://localhost:8384\n" +
 				"2. Add Remote Device → paste the always-on device's ID (kept as a secure\n" +
 				"   note in 1Password, deliberately not in this repo)\n" +
-				"3. Advanced tab → Addresses: tcp://<tailscale-ip>:22000 instead of\n" +
+				"3. Advanced tab → Addresses: tcp://<tailscale-id>:22000 instead of\n" +
 				"   'dynamic' (needs Tailscale connected)\n" +
-				"4. On that device's Syncthing GUI, accept the prompt and tick the folder\n" +
-				"5. Back here, accept the share and pick a local path, e.g ~/pantry",
+				"4. On that device's Syncthing GUI, accept the prompt from this Mac",
+		},
+		{
+			ID:          "syncthing-folder-configure",
+			Category:    "Private Network",
+			Name:        "Configure a Syncthing folder",
+			Description: "Add a shared folder and pin the far side to a Tailscale address.",
+			ManualInstructions: "1. In http://localhost:8384, click Add Folder\n" +
+				"     Folder Label: pantry\n" +
+				"     Folder ID:    pantry\n" +
+				"     Folder Path:  ~/pantry (unless you keep it elsewhere)\n" +
+				"2. Sharing tab → tick the always-on device, then Save\n" +
+				"3. On the always-on device: Remote Devices → this Mac → Edit →\n" +
+				"   Advanced tab → Addresses: tcp://<tailscale-id>:22000 instead of\n" +
+				"   'dynamic', using this Mac's Tailscale ID\n" +
+				"4. Accept the folder share when it appears on the always-on device",
 		},
 
 		// ── Testing ────────────────────────────────────────────────────
