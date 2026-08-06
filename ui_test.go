@@ -575,6 +575,136 @@ func TestRightSelectsInsideCategory(t *testing.T) {
 	}
 }
 
+// enterFirstCategory returns a model parked on the first category's step list.
+func enterFirstCategory(t *testing.T, state *AppState) tea.Model {
+	t.Helper()
+	t.Setenv("HOME", t.TempDir()) // X saves state; keep it out of the real home
+	m := newModel(state)
+	m.dryRun = true
+	var tm tea.Model = m
+	tm = sendSpecialKey(tm, tea.KeyEnter)
+	if got := tm.(model).screen; got != screenStepSelect {
+		t.Fatalf("expected step select screen, got %d", got)
+	}
+	return tm
+}
+
+func TestToggleStepDone(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	tm := enterFirstCategory(t, state)
+
+	// Move to the first step and mark it done without running it.
+	tm = sendKey(tm, "j")
+	step := tm.(model).stepSelectSteps[0]
+	tm = sendKey(tm, "X")
+	if got := state.Steps[step.ID]; got != StatusCompleted {
+		t.Fatalf("X should mark %q completed, got %q", step.ID, got)
+	}
+
+	// Toggling again clears the status entirely, so the step is pending again.
+	tm = sendKey(tm, "X")
+	if _, ok := state.Steps[step.ID]; ok {
+		t.Fatalf("a second X should clear %q, got %q", step.ID, state.Steps[step.ID])
+	}
+
+	// It is only a status change: selection and screen are untouched.
+	m := tm.(model)
+	if !m.stepSelected[step.ID] {
+		t.Fatal("X should not change which steps are selected")
+	}
+	if m.screen != screenStepSelect {
+		t.Fatalf("X should stay on the step list; screen=%d", m.screen)
+	}
+}
+
+// Toggling done is deliberately shift-only: a stray lowercase x must not
+// silently rewrite progress.
+func TestLowercaseXDoesNotToggleDone(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	tm := enterFirstCategory(t, state)
+
+	tm = sendKey(tm, "j")
+	step := tm.(model).stepSelectSteps[0]
+	tm = sendKey(tm, "x")
+	if got, ok := state.Steps[step.ID]; ok {
+		t.Fatalf("lowercase x should not change %q, got %q", step.ID, got)
+	}
+
+	// Nor on the Select All row.
+	tm = sendKey(tm, "k")
+	tm = sendKey(tm, "x")
+	if len(state.Steps) != 0 {
+		t.Fatalf("lowercase x should not mark the category done, got %v", state.Steps)
+	}
+}
+
+func TestToggleDoneClearsFailedHistory(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	tm := enterFirstCategory(t, state)
+	tm = sendKey(tm, "j")
+	step := tm.(model).stepSelectSteps[0]
+
+	// A step that failed before is not completed, so X marks it done...
+	state.Steps[step.ID] = StatusFailed
+	tm = sendKey(tm, "X")
+	if got := state.Steps[step.ID]; got != StatusCompleted {
+		t.Fatalf("X on a failed step should mark it completed, got %q", got)
+	}
+	// ...and toggling back leaves no failed history behind.
+	tm = sendKey(tm, "X")
+	if got, ok := state.Steps[step.ID]; ok {
+		t.Fatalf("toggling off should clear the status, got %q", got)
+	}
+}
+
+func TestToggleDoneOnSelectAllRow(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	tm := enterFirstCategory(t, state)
+	steps := tm.(model).stepSelectSteps
+
+	// Cursor starts on the Select All row: X marks the whole category done.
+	tm = sendKey(tm, "X")
+	for _, s := range steps {
+		if got := state.Steps[s.ID]; got != StatusCompleted {
+			t.Fatalf("expected %q completed, got %q", s.ID, got)
+		}
+	}
+
+	// Pressing it again clears the category.
+	tm = sendKey(tm, "X")
+	for _, s := range steps {
+		if got, ok := state.Steps[s.ID]; ok {
+			t.Fatalf("expected %q cleared, got %q", s.ID, got)
+		}
+	}
+
+	// A partly-done category still marks everything done rather than clearing.
+	state.Steps[steps[0].ID] = StatusCompleted
+	tm = sendKey(tm, "X")
+	for _, s := range steps {
+		if got := state.Steps[s.ID]; got != StatusCompleted {
+			t.Fatalf("expected %q completed, got %q", s.ID, got)
+		}
+	}
+}
+
+func TestToggleDoneRemovesStepFromRun(t *testing.T) {
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	tm := enterFirstCategory(t, state)
+	tm = sendKey(tm, "j")
+	step := tm.(model).stepSelectSteps[0]
+
+	// Marking a step done excludes it from the category run, like any other
+	// completed step.
+	tm = sendKey(tm, "X")
+	tm = sendKey(tm, "G")
+	for _, s := range tm.(model).runSteps {
+		if s.ID == step.ID {
+			t.Fatalf("step %q marked done should not be re-run", step.ID)
+		}
+	}
+}
+
 func TestLaunchSingleStep(t *testing.T) {
 	state := &AppState{Steps: make(map[string]StepStatus)}
 	m := newModel(state)
