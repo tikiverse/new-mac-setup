@@ -29,8 +29,12 @@ func main() {
 
 // runTUI launches the full-screen interactive setup.
 func runTUI(dryRun, debug bool) {
-	state := LoadState()
+	state, err := LoadState()
 	m := newModel(state)
+	if err != nil {
+		// The alt screen wipes stderr, so carry the warning into the TUI.
+		m.loadWarning = err.Error()
+	}
 	m.dryRun = dryRun
 	if debug {
 		m.debug = true
@@ -38,7 +42,7 @@ func runTUI(dryRun, debug bool) {
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	if _, err = p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

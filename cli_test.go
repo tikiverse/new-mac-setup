@@ -67,14 +67,14 @@ func TestRunDirectDoneReset(t *testing.T) {
 	if code := runDirect(cliOptions{stepID: id, action: actionDone}); code != 0 {
 		t.Fatalf("--done returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] != StatusCompleted {
+	if s, _ := LoadState(); s.Steps[id] != StatusCompleted {
 		t.Fatalf("expected %s completed, got %q", id, s.Steps[id])
 	}
 
 	if code := runDirect(cliOptions{stepID: id, action: actionReset}); code != 0 {
 		t.Fatalf("--reset returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] != "" {
+	if s, _ := LoadState(); s.Steps[id] != "" {
 		t.Fatalf("expected %s cleared, got %q", id, s.Steps[id])
 	}
 }
@@ -92,7 +92,7 @@ func TestRunDirectShowDoesNotExecuteOrMark(t *testing.T) {
 	if code := runDirect(cliOptions{stepID: id, action: actionShow}); code != 0 {
 		t.Fatalf("show returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] != "" {
+	if s, _ := LoadState(); s.Steps[id] != "" {
 		t.Fatalf("show must not change state, got %q", s.Steps[id])
 	}
 }
@@ -104,7 +104,7 @@ func TestRunDirectManualStepIsNotMarked(t *testing.T) {
 	if code := runDirect(cliOptions{stepID: id, action: actionRun}); code != 0 {
 		t.Fatalf("manual run returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] == StatusCompleted {
+	if s, _ := LoadState(); s.Steps[id] == StatusCompleted {
 		t.Fatal("a manual step should not be auto-marked done by a direct run")
 	}
 }

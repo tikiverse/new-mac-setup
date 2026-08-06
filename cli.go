@@ -108,7 +108,10 @@ func runDirect(opts cliOptions) int {
 		fmt.Fprintln(os.Stderr, "Run mac-setup with no arguments to browse step ids.")
 		return 1
 	}
-	state := LoadState()
+	state, err := LoadState()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+	}
 
 	switch opts.action {
 	case actionShow:

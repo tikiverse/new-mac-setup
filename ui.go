@@ -97,6 +97,10 @@ type model struct {
 	// Mode
 	dryRun bool
 	debug  bool // show the Testing category
+
+	// loadWarning is set when state.json existed but could not be read, so the
+	// user knows the progress on screen is not what was on disk.
+	loadWarning string
 }
 
 type runLogEntry struct {
@@ -734,6 +738,11 @@ func (m model) viewCategories() string {
 	}
 
 	b.WriteString("\n")
+	if m.loadWarning != "" {
+		b.WriteString(styleWarning.Render("  ⚠ Saved progress could not be loaded — showing a blank slate."))
+		b.WriteString("\n")
+		b.WriteString(styleDim.Render("    "+m.loadWarning) + "\n\n")
+	}
 	if m.confirmReset {
 		b.WriteString(styleWarning.Render("  Reset all checkmarks for this category? [y] Yes  [n] No"))
 		b.WriteString("\n")
