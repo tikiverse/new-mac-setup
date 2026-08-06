@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // sendKey simulates a key press and returns the updated model.
@@ -691,4 +692,92 @@ func searchString(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestWrapIndentedFitsWidth(t *testing.T) {
+	const width = 40
+	s := "1. Open http://localhost:8384 and add the remote device before anything else\n" +
+		"     Folder Label: pantry"
+
+	for _, line := range wrapIndented(s, "  ", width) {
+		// Lone words longer than the available room are allowed to overflow.
+		if len(strings.Fields(strings.TrimSpace(line))) > 1 && lipgloss.Width(line) > width {
+			t.Errorf("line exceeds width %d: %q", width, line)
+		}
+	}
+}
+
+func TestWrapIndentedPreservesHangingIndent(t *testing.T) {
+	got := wrapIndented("     Folder Path: somewhere quite deep on this disk", "  ", 34)
+
+	if len(got) < 2 {
+		t.Fatalf("expected the line to wrap, got %q", got)
+	}
+	for _, line := range got {
+		if !strings.HasPrefix(line, "       ") {
+			t.Errorf("continuation lost its indent: %q", line)
+		}
+	}
+}
+
+func TestWrapIndentedKeepsLongWordIntact(t *testing.T) {
+	url := "https://chrome.google.com/webstore/detail/1password/aeblfdkhhhdcdjpifhhbdiojplfjncoa"
+
+	got := wrapIndented("2. Install it: "+url, "  ", 40)
+	if !strings.Contains(strings.Join(got, "\n"), url) {
+		t.Errorf("URL was broken across lines: %q", got)
+	}
+}
+
+func TestManualInstructionsWrapInRunView(t *testing.T) {
+	step := Step{
+		ID:                 "wrap-me",
+		Category:           "Testing",
+		Name:               "Wrap me",
+		ManualInstructions: "1. " + strings.Repeat("word ", 40),
+	}
+
+	state := &AppState{Steps: make(map[string]StepStatus)}
+	m := newModel(state)
+	m.width = 50
+	m.screen = screenCategoryRun
+	m.runWaitManual = true
+	m.runManualStep = &step
+
+	for _, line := range strings.Split(m.viewCategoryRun(), "\n") {
+		if lipgloss.Width(line) > 50 {
+			t.Errorf("run view line exceeds terminal width: %q", line)
+		}
+	}
+}
+
+func TestWrapIndentedKeepsFittingLinesVerbatim(t *testing.T) {
+	// Deliberate column alignment must survive when the line already fits.
+	s := "     Folder Label: pantry\n" +
+		"     Folder ID:    pantry"
+
+	got := wrapIndented(s, "  ", 80)
+	want := []string{
+		"       Folder Label: pantry",
+		"       Folder ID:    pantry",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestWrapIndentedHangsListContinuationsUnderText(t *testing.T) {
+	got := wrapIndented("3. On the always-on device, open the advanced tab", "", 30)
+
+	if len(got) < 2 {
+		t.Fatalf("expected the line to wrap, got %q", got)
+	}
+	if strings.HasPrefix(got[0], " ") {
+		t.Errorf("first line should not be indented: %q", got[0])
+	}
+	for _, line := range got[1:] {
+		if !strings.HasPrefix(line, "   ") {
+			t.Errorf("continuation should hang under the text, got %q", line)
+		}
+	}
 }

@@ -368,13 +368,6 @@ func AllSteps() []Step {
 			Commands:    []string{`brew install --cask orbstack`},
 		},
 		{
-			ID:          "tailscale-install",
-			Category:    "Development",
-			Name:        "Install Tailscale",
-			Description: "Optional: mesh VPN for accessing your other devices.",
-			Commands:    []string{`brew install --cask tailscale`},
-		},
-		{
 			ID:          "brew-formulae",
 			Category:    "Development",
 			Name:        "Install CLI tools (brew formulae)",
@@ -454,6 +447,50 @@ func AllSteps() []Step {
 			Name:        "Install SoundSource",
 			Description: "Advanced audio control for Mac.",
 			Commands:    []string{`brew install --cask soundsource`},
+		},
+
+		// ── Private Network ────────────────────────────────────────────
+		{
+			ID:          "tailscale-install",
+			Category:    "Private Network",
+			Name:        "Install Tailscale",
+			Description: "Mesh VPN for accessing your other devices.",
+			Commands:    []string{`brew install --cask tailscale`},
+		},
+		{
+			ID:          "syncthing-install",
+			Category:    "Private Network",
+			Name:        "Install Syncthing",
+			Description: "Continuous file sync between your devices; starts as a background service.",
+			Commands: []string{
+				`brew install syncthing`,
+				`brew services start syncthing`,
+			},
+			Note: "Never copy key.pem from another machine — each device generates its own identity, and duplicate identities break the mesh.",
+		},
+		{
+			ID:          "syncthing-setup",
+			Category:    "Private Network",
+			Name:        "Pair Syncthing with the always-on device",
+			Description: "Introduce this Mac to the always-on device over Tailscale.",
+			// One logical line per item — the run view wraps to the terminal.
+			ManualInstructions: "1. Open http://localhost:8384\n" +
+				"2. Add Remote Device → paste the always-on device's ID (kept as a secure note in 1Password, deliberately not in this repo)\n" +
+				"3. Advanced tab → Addresses: tcp://<tailscale-id>:22000 instead of 'dynamic' (needs Tailscale connected)\n" +
+				"4. On that device's Syncthing GUI, accept the prompt from this Mac",
+		},
+		{
+			ID:          "syncthing-folder-configure",
+			Category:    "Private Network",
+			Name:        "Configure a Syncthing folder",
+			Description: "Add a shared folder and pin the far side to a Tailscale address.",
+			ManualInstructions: "1. In http://localhost:8384, click Add Folder\n" +
+				"     Folder Label: pantry\n" +
+				"     Folder ID:    pantry\n" +
+				"     Folder Path:  ~/pantry (unless you keep it elsewhere)\n" +
+				"2. Sharing tab → tick the always-on device, then Save\n" +
+				"3. On the always-on device: Remote Devices → this Mac → Edit → Advanced tab → Addresses: tcp://<tailscale-id>:22000 instead of 'dynamic', using this Mac's Tailscale ID\n" +
+				"4. Accept the folder share when it appears on the always-on device",
 		},
 
 		// ── Testing ────────────────────────────────────────────────────
