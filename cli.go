@@ -97,7 +97,35 @@ func parseArgs(args []string) (cliOptions, error) {
 			o.stepID = a
 		}
 	}
+
+	// The action flags all operate on a single step, so they are meaningless
+	// without a step id. Reject them instead of falling through to the TUI,
+	// which would silently ignore what the user asked for. Each action is
+	// listed by name so that TUI-only flags added later are unaffected.
+	if o.stepID == "" {
+		switch o.action {
+		case actionRun, actionDone, actionReset, actionCopy:
+			return o, fmt.Errorf("%s requires a step id", actionFlag(o.action))
+		}
+	}
+
 	return o, nil
+}
+
+// actionFlag returns the flag that selects an action, for use in error text.
+func actionFlag(a cliAction) string {
+	switch a {
+	case actionRun:
+		return "--run"
+	case actionDone:
+		return "--done"
+	case actionReset:
+		return "--reset"
+	case actionCopy:
+		return "--copy"
+	default:
+		return ""
+	}
 }
 
 // runDirect performs a single-step action from the CLI and returns an exit code.
@@ -108,7 +136,10 @@ func runDirect(opts cliOptions) int {
 		fmt.Fprintln(os.Stderr, "Run mac-setup with no arguments to browse step ids.")
 		return 1
 	}
-	state := LoadState()
+	state, err := LoadState()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+	}
 
 	switch opts.action {
 	case actionShow:

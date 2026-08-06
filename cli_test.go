@@ -20,6 +20,19 @@ func TestParseArgs(t *testing.T) {
 		{"conflicting actions", []string{"x", "--run", "--copy"}, cliOptions{}, true},
 		{"unknown flag", []string{"x", "--nope"}, cliOptions{}, true},
 		{"two ids", []string{"a", "b"}, cliOptions{}, true},
+
+		// Action flags act on one step, so a missing id is an error rather
+		// than a silent fall-through to the TUI.
+		{"run without id", []string{"--run"}, cliOptions{}, true},
+		{"done without id", []string{"--done"}, cliOptions{}, true},
+		{"reset without id", []string{"--reset"}, cliOptions{}, true},
+		{"copy without id", []string{"--copy"}, cliOptions{}, true},
+		{"run without id, flags around it", []string{"-n", "--run"}, cliOptions{}, true},
+
+		// TUI-only flags must still launch the TUI with no id.
+		{"dry-run alone is the TUI", []string{"--dry-run"}, cliOptions{dryRun: true}, false},
+		{"debug alone is the TUI", []string{"--debug"}, cliOptions{debug: true}, false},
+		{"both TUI flags", []string{"--debug", "-n"}, cliOptions{dryRun: true, debug: true}, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -37,6 +50,19 @@ func TestParseArgs(t *testing.T) {
 				t.Fatalf("parseArgs(%v) = %+v, want %+v", tc.args, got, tc.want)
 			}
 		})
+	}
+}
+
+// The error must name the flag that was misused, so the fix is obvious.
+func TestParseArgsActionWithoutIDNamesTheFlag(t *testing.T) {
+	for _, flag := range []string{"--run", "--done", "--reset", "--copy"} {
+		_, err := parseArgs([]string{flag})
+		if err == nil {
+			t.Fatalf("%s without a step id should be an error", flag)
+		}
+		if !contains(err.Error(), flag) {
+			t.Errorf("error for %s should name the flag, got %q", flag, err)
+		}
 	}
 }
 
@@ -67,14 +93,14 @@ func TestRunDirectDoneReset(t *testing.T) {
 	if code := runDirect(cliOptions{stepID: id, action: actionDone}); code != 0 {
 		t.Fatalf("--done returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] != StatusCompleted {
+	if s, _ := LoadState(); s.Steps[id] != StatusCompleted {
 		t.Fatalf("expected %s completed, got %q", id, s.Steps[id])
 	}
 
 	if code := runDirect(cliOptions{stepID: id, action: actionReset}); code != 0 {
 		t.Fatalf("--reset returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] != "" {
+	if s, _ := LoadState(); s.Steps[id] != "" {
 		t.Fatalf("expected %s cleared, got %q", id, s.Steps[id])
 	}
 }
@@ -92,7 +118,7 @@ func TestRunDirectShowDoesNotExecuteOrMark(t *testing.T) {
 	if code := runDirect(cliOptions{stepID: id, action: actionShow}); code != 0 {
 		t.Fatalf("show returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] != "" {
+	if s, _ := LoadState(); s.Steps[id] != "" {
 		t.Fatalf("show must not change state, got %q", s.Steps[id])
 	}
 }
@@ -104,7 +130,7 @@ func TestRunDirectManualStepIsNotMarked(t *testing.T) {
 	if code := runDirect(cliOptions{stepID: id, action: actionRun}); code != 0 {
 		t.Fatalf("manual run returned %d", code)
 	}
-	if s := LoadState(); s.Steps[id] == StatusCompleted {
+	if s, _ := LoadState(); s.Steps[id] == StatusCompleted {
 		t.Fatal("a manual step should not be auto-marked done by a direct run")
 	}
 }

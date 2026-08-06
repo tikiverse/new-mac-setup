@@ -847,6 +847,26 @@ func TestAdminStepUsesTerminalHandoff(t *testing.T) {
 	}
 }
 
+// A failed state load must be visible in the TUI: stderr is wiped by the alt
+// screen, so a silent blank slate is exactly the failure we're guarding against.
+func TestLoadWarningIsVisibleOnCategoriesScreen(t *testing.T) {
+	m := newModel(&AppState{Steps: make(map[string]StepStatus)})
+	m.screen = screenCategories
+
+	if out := m.viewCategories(); contains(out, "could not be loaded") {
+		t.Fatalf("no warning should appear on a clean load, got:\n%s", out)
+	}
+
+	m.loadWarning = "state.json is corrupt (unexpected end of JSON input)"
+	out := m.viewCategories()
+	if !contains(out, "could not be loaded") {
+		t.Fatalf("expected the warning banner, got:\n%s", out)
+	}
+	if !contains(out, "unexpected end of JSON input") {
+		t.Fatalf("expected the underlying cause to be shown, got:\n%s", out)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }
