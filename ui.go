@@ -889,9 +889,11 @@ func (m model) viewCategoryRun() string {
 	} else if m.runIndex < len(m.runSteps) {
 		// Currently streaming an automated step's output.
 		step := m.runSteps[m.runIndex]
-		b.WriteString(fmt.Sprintf("  %s %s\n\n",
+		b.WriteString(fmt.Sprintf("  %s %s\n",
 			styleDim.Render("⋯"),
 			styleDim.Render(step.Name)))
+		// How to run just this step from the terminal.
+		b.WriteString(styleDim.Render("  $ "+cliInvocation(step)) + "\n\n")
 		b.WriteString(m.runViewport.View() + "\n\n")
 		b.WriteString(help("  [↑/↓ PgUp/PgDn] Scroll  •  [q] Quit"))
 		b.WriteString("\n")
